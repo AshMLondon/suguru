@@ -10,7 +10,7 @@ import numpy as np
 # SETUP
 num_cols = 13
 num_rows = 10
-cell_draw_size = 35
+cell_draw_size = 40
 
 # grid=np.zeros((num_rows, num_cols), dtype=int)
 # grid_shapes=np.zeros((num_rows, num_cols), dtype=int)
@@ -62,9 +62,11 @@ print(shape_coords)
 
 
 screen = turtle.Screen()
-# screen.bgcolor("orange")
+#screen.screensize(0.9,0.8)
+#screen.bgcolor("orange")
 screen.delay(0)
 screen.tracer(0)
+
 
 pen = turtle.Turtle()
 pen.speed(0)
@@ -218,7 +220,7 @@ while not are_we_stuck:
                 pen.color(colour)
                 pen.write(num, align="center", font=("Comic Sans MS", 18, "normal"))
                 print("number =", grid[r, c])
-                time.sleep(0.05)
+                #time.sleep(0.05)
 
 
             grid[blank_posn] = missing_value
@@ -308,6 +310,78 @@ while not are_we_stuck:
 
 if are_we_stuck:
     print ("***LOOKS LIKE WE GOT STUCK***")
+
+print (grid)
+
+
+# ok, now let's try the pencil marks
+grid_pencils={}
+for r in range(num_rows):
+    for c in range(num_cols):
+        # first find out which shape
+        this_shape = grid_shapes [r,c]
+        this_shape_coords=shape_coords[this_shape]
+        shape_size=len(this_shape_coords)
+        numbers_available=list(range(1,shape_size+1))
+        #print("Cell =",r,c," NumAV=",numbers_available)
+
+        for cell in this_shape_coords:
+            #print ("*CELL*",cell)
+            if grid[cell] in numbers_available:
+                numbers_available.remove(grid[cell])
+
+        neighbours = get_neighbours(r,c)
+        for nb in neighbours:
+            if grid[nb] in numbers_available:
+                numbers_available.remove(grid[nb])
+
+        #print("Cell =", r, c, " NumAV=", numbers_available, "Neighbours =",neighbours)
+
+        grid_pencils[(r,c)] =  numbers_available
+
+
+print(grid_pencils)
+
+def display_pencils(r,c,colour="gray"):
+    vert_mini_offset=0.33*cell_draw_size
+    xpos = start_coords[0] + cell_draw_size * c  + horiz_offset
+    ypos = start_coords[1] - cell_draw_size * r - vert_mini_offset  # down is negative
+    pen.setpos(xpos, ypos)
+    pen.color(colour)
+    pencils=grid_pencils[r,c]
+    # top row 1-2
+    line=""
+    line+=  "1  " if 1 in pencils else "   "
+    line+= " 2" if 2 in pencils else "  "
+    pen.write(line, align="center", font=("Arial",  8, "normal"))
+    line = "3" if 3 in pencils else " "
+    pen.setpos(xpos, ypos - vert_mini_offset)
+    pen.write(line, align="center", font=("Arial", 8, "normal"))
+    line = ""
+    line += "4  " if 4 in pencils else "   "
+    line += " 5" if 5 in pencils else "  "
+    pen.setpos(xpos, ypos - 2*vert_mini_offset)
+    pen.write(line, align="center", font=("Arial", 8, "normal"))
+
+    #print("number =", grid[r, c])
+    # time.sleep(0.05)
+
+
+for r in range(num_rows):
+    for c in range(num_cols):
+        if grid[r,c]==0:
+            display_pencils(r,c)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
