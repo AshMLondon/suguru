@@ -4,7 +4,7 @@
 trying to create a suguru puzzle
 """
 
-import turtle
+import turtle, time
 import numpy as np
 
 # SETUP
@@ -49,16 +49,16 @@ grid_shapes = np.array(shape_as_CSV)
 shape_coords = {}
 for r in range(num_rows):
     for c in range(num_cols):
-        this_shape=grid_shapes[r,c]
+        this_shape = grid_shapes[r, c]
         this_shape_coords = shape_coords.get(this_shape)
         if not this_shape_coords:
             this_shape_coords = []
-        this_shape_coords.append((r,c))
+        this_shape_coords.append((r, c))
         shape_coords[this_shape] = this_shape_coords
 
-print (shape_coords)
+print(shape_coords)
 
-
+# grid[1,11]=5  #*****FORCE TO CHECK
 
 
 screen = turtle.Screen()
@@ -125,11 +125,11 @@ for c in range(num_cols + 1):
 pen.left(90)
 pen.up()
 pen.setpos(start_coords)
-horiz_offset=cell_draw_size / 2
-pen.forward(horiz_offset) #centre horizontally
+horiz_offset = cell_draw_size / 2
+pen.forward(horiz_offset)  # centre horizontally
 pen.right(90)
 vert_offset = cell_draw_size * .9
-pen.forward(vert_offset) #vertical adjustment
+pen.forward(vert_offset)  # vertical adjustment
 pen.left(90)
 
 # now numbers
@@ -168,104 +168,150 @@ button.showturtle()
 
 '''
 
-#input("presss enter to go further")
+# input("presss enter to go further")
 
 
 # SOLVING
 
-# Check If Shape Has Just 1 Number missing
+are_we_stuck = False #allow for constant loop so long as keep finding new numbers
 
-found=0 #keep a count of how many found
-for shape_number,shape in shape_coords.items():
-    # print(shape)
-    shape_size=len(shape)
-    blank_cells = 0
+while not are_we_stuck:
 
-    for cell in shape:
-        if grid[cell]==0:
-            blank_cells +=1
-            last_blank=cell
+    found = 0
+    # let's set this before any logic tests -- keep count of any new finds to see if stuck or carry on looping
 
-    # print ("Shape Number", shape_number, "Size/Blanks", shape_size, blank_cells)
-    if blank_cells == 1 :
-        found+=1
-        print ("Shape Number", shape_number, "Size/Blanks", shape_size, blank_cells)
-        # now let's work out what it should be
-        numbers_needed=list(range(1,shape_size+1))
-        print ("numbers needed", numbers_needed)
+    # Logic Test 1 - Check If Shape Has Just 1 Number missing
+
+    for shape_number, shape in shape_coords.items():
+        # print(shape)
+        shape_size = len(shape)
+        blank_cells = 0
+
         for cell in shape:
-            if grid[cell]==0:
-                blank_posn=cell
-            else:
-                numbers_needed.remove(grid[cell])
-        #numbers_needed[0] should now have the missing number
-            missing_value=numbers_needed[0]
-            print("missing",missing_value)
-            print("cell location",blank_posn)
+            if grid[cell] == 0:
+                blank_cells += 1
+                last_blank = cell
+
+        # print ("Shape Number", shape_number, "Size/Blanks", shape_size, blank_cells)
+        if blank_cells == 1:
+            found += 1
+            print("Shape Number", shape_number, "Size/Blanks", shape_size, blank_cells)
+            # now let's work out what it should be
+            numbers_needed = list(range(1, shape_size + 1))
+            print("numbers needed", numbers_needed)
+            for cell in shape:
+                if grid[cell] == 0:
+                    blank_posn = cell
+                else:
+                    numbers_needed.remove(grid[cell])
+            print("**A single solution in theory**",numbers_needed)
+            # numbers_needed[0] should now have the missing number
+            missing_value = numbers_needed[0]
+            print("missing", missing_value)
+            print("cell location", blank_posn)
 
 
-            def display_newnumber(num, rc_tuple):
+            def display_newnumber(num, rc_tuple, colour="blue"):
                 xpos = start_coords[0] + cell_draw_size * rc_tuple[1] + horiz_offset
                 ypos = start_coords[1] - cell_draw_size * rc_tuple[0] - vert_offset  # down is negative
                 pen.setpos(xpos, ypos)
-                pen.color("blue")
+                pen.color(colour)
                 pen.write(num, align="center", font=("Comic Sans MS", 18, "normal"))
                 print("number =", grid[r, c])
+                time.sleep(0.05)
 
 
-            grid[blank_posn]=missing_value
-            display_newnumber(missing_value,blank_posn)
+            grid[blank_posn] = missing_value
+            display_newnumber(missing_value, blank_posn)
+            found += 1
 
-        # TODO -- array of which numbers are original
-        # now display any  new number(s) found
+            # TODO -- array of which numbers are original
+            # now display any  new number(s) found
 
+    # Logic Test 2 - Check if any cells have all but one number neighbouring
 
-#Check if any cells have all but one number neighbouring
-found=0
-for r in range(num_rows):
-    for c in range(num_cols):
-        if grid[r,c]==0: #only check for blanks
-            numbers_available=list(range(1,6))
-            # get neighbours
-            neighbours=[]
-            for nb_r in range(r-1,r+2):
-                if 0<=nb_r<=num_rows-1:
-                    for nb_c in range(c-1,c+2):
-                        if 0<=nb_c <=  num_cols-1:
-                            neighbours.append((nb_r,nb_c))
-            neighbours.remove((r,c)) #don't include itself
-
-            for nb in neighbours:
-                if grid[nb] in numbers_available:
-                    numbers_available.remove(grid[nb])
+    def get_neighbours(r, c):
+        neighbours = []
+        for nb_r in range(r - 1, r + 2):
+            if 0 <= nb_r <= num_rows - 1:
+                for nb_c in range(c - 1, c + 2):
+                    if 0 <= nb_c <= num_cols - 1:
+                        neighbours.append((nb_r, nb_c))
+        neighbours.remove((r, c))  # don't include itself
+        return neighbours
 
 
-            print("Cell: ",r,c, "Numbers Available",len(numbers_available),":",numbers_available,"Neighbours",len(neighbours),neighbours)
-            if len(numbers_available)==1:  #found one!
-                print ("FOUND ONE!")
-                found+=1
-                grid[r,c]=numbers_available[0]
-                display_newnumber(numbers_available[0],(r,c))
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r, c] == 0:  # only check for blanks
+                numbers_available = list(range(1, 6))
+
+                neighbours = get_neighbours(r, c)
+
+                for nb in neighbours:
+                    if grid[nb] in numbers_available:
+                        numbers_available.remove(grid[nb])
+                        # TODO -- NEED TO ALSO CHECK AGAINST NUMBERS IN REST OF THAT SHAPE
+
+                cells_in_this_shape = shape_coords[grid_shapes[r, c]]
+                for cell in cells_in_this_shape:
+                    if grid[cell] in numbers_available:
+                        numbers_available.remove(grid[cell])
+
+                print("Cell: ", r, c, "Numbers Available", len(numbers_available), ":", numbers_available, "Neighbours",
+                      len(neighbours), neighbours)
+                if len(numbers_available) == 1:  # found one!
+                    print("FOUND ONE!")
+                    found += 1
+                    grid[r, c] = numbers_available[0]
+                    display_newnumber(numbers_available[0], (r, c), "green")
+
+    # Logic Test 3 - Vicky's - Check how many places in a shape each number can go in
+    # '''
+
+    for shape_number, shape in shape_coords.items():
+        # print(shape)
+        shape_size = len(shape)
+        # we've got our shape, now let's go through each possible number
+
+        for search_number in range(1, shape_size + 1):  # number we're looking for
+            poss_cells = []  # keep tabs of how many solution cells
+            already_there = False
+            for cell in shape:
+                if grid[cell] == search_number:
+                    already_there = True
+                    break
+
+                elif grid[cell] == 0:
+                    # let's see if this blank cell is allowed - check neighbours
+                    neighbours = get_neighbours(*cell)  # *should split  tuple to send
+                    neighbour_has = False
+                    for nb in neighbours:
+                        if grid[nb] == search_number:
+                            neighbour_has = True
+                            break
+                    if not neighbour_has:  # not neighbouring - this cell ok
+                        poss_cells.append(cell)
+
+            # TODO - error handle if no places it can go
+            if not already_there and len(poss_cells) == 1:
+                # found one!
+                found += 1
+                grid[poss_cells[0]] = search_number
+                display_newnumber(search_number, poss_cells[0], "magenta")
+
+    # END OF SOLVING LOGIC -- and while loop
+    print ("**end of loop** let's check grid")
+    print (grid)
+    if found==0:
+        are_we_stuck=True
+
+if are_we_stuck:
+    print ("***LOOKS LIKE WE GOT STUCK***")
 
 
 
 
-
-
-
-
-        # tick off numbers in neighbours
-
-        # see how many numbers are left
-
-
-
-
-
-
-
-# loop through all shapes
-# check if shape has only 1 missing number
 
 
 turtle.done()
