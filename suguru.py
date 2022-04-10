@@ -175,9 +175,9 @@ button.showturtle()
 
 # SOLVING
 
-are_we_stuck = False #allow for constant loop so long as keep finding new numbers
+stuck = False #allow for constant loop so long as keep finding new numbers
 
-while not are_we_stuck:
+while not stuck:
 
     found = 0
     # let's set this before any logic tests -- keep count of any new finds to see if stuck or carry on looping
@@ -260,8 +260,8 @@ while not are_we_stuck:
                     if grid[cell] in numbers_available:
                         numbers_available.remove(grid[cell])
 
-                print("Cell: ", r, c, "Numbers Available", len(numbers_available), ":", numbers_available, "Neighbours",
-                      len(neighbours), neighbours)
+                #print("Cell: ", r, c, "Numbers Available", len(numbers_available), ":", numbers_available, "Neighbours",
+                      #len(neighbours), neighbours)
                 if len(numbers_available) == 1:  # found one!
                     print("FOUND ONE!")
                     found += 1
@@ -306,39 +306,48 @@ while not are_we_stuck:
     print ("**end of loop** let's check grid")
     print (grid)
     if found==0:
-        are_we_stuck=True
+        stuck=True
 
-if are_we_stuck:
+if stuck:
     print ("***LOOKS LIKE WE GOT STUCK***")
 
 print (grid)
 
 
 # ok, now let's try the pencil marks
-grid_pencils={}
-for r in range(num_rows):
-    for c in range(num_cols):
-        # first find out which shape
-        this_shape = grid_shapes [r,c]
-        this_shape_coords=shape_coords[this_shape]
-        shape_size=len(this_shape_coords)
-        numbers_available=list(range(1,shape_size+1))
-        #print("Cell =",r,c," NumAV=",numbers_available)
 
-        for cell in this_shape_coords:
-            #print ("*CELL*",cell)
-            if grid[cell] in numbers_available:
-                numbers_available.remove(grid[cell])
+def create_grid_pencils():
+    grid_pencils = {}
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r, c] != 0:
+                grid_pencils[r, c] = []
+            else:
+                # first find out which shape
+                this_shape = grid_shapes[r, c]
+                this_shape_coords = shape_coords[this_shape]
+                shape_size = len(this_shape_coords)
+                numbers_available = list(range(1, shape_size + 1))
+                # print("Cell =",r,c," NumAV=",numbers_available)
 
-        neighbours = get_neighbours(r,c)
-        for nb in neighbours:
-            if grid[nb] in numbers_available:
-                numbers_available.remove(grid[nb])
+                for cell in this_shape_coords:
+                    # print ("*CELL*",cell)
+                    if grid[cell] in numbers_available:
+                        numbers_available.remove(grid[cell])
 
-        #print("Cell =", r, c, " NumAV=", numbers_available, "Neighbours =",neighbours)
+                neighbours = get_neighbours(r, c)
+                for nb in neighbours:
+                    if grid[nb] in numbers_available:
+                        numbers_available.remove(grid[nb])
 
-        grid_pencils[(r,c)] =  numbers_available
+                # print("Cell =", r, c, " NumAV=", numbers_available, "Neighbours =",neighbours)
 
+                grid_pencils[(r, c)] = numbers_available
+
+    return(grid_pencils)
+
+
+grid_pencils=create_grid_pencils()
 
 print(grid_pencils)
 
@@ -367,26 +376,150 @@ def display_pencils(r,c,colour="gray"):
     # time.sleep(0.05)
 
 
-for r in range(num_rows):
-    for c in range(num_cols):
-        if grid[r,c]==0:
-            display_pencils(r,c)
+def display_all_pencils(colour="gray"):
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r,c]==0:
+                display_pencils(r,c,colour)
+
+display_all_pencils()
+
+
+
+## START NEW LOOP HERE
+
+stuck=False
+while not stuck:
+    found=0
+
+    # Logic #4: now need something clever
+    #TODO -- this is the tricky bit!!!
+
+    # for each shape, go through each number one by one
+    # which cells can hold that number
+    # what are their neighbours
+    # are any of those neighbours common to all of those cells
+    # if so, that neighbour cannot hold that number
+
+
+    print (grid_pencils)
+
+    pencils_erased=0
+    debug_breakout=False
+    for shape_number, shape in shape_coords.items():
+        if debug_breakout: break
+        shape_size = len(shape)
+        for search_number in range(1,shape_size+1):
+            print("shape",shape,"searchnum",search_number)
+            if debug_breakout: break
+            neighbours_to_check=["not_started"]
+            #print ("shapecoords",shape_coords)
+            for cell in shape:
+                # print("-----",cell)
+                # print ("****",search_number,grid_pencils[cell])
+                if not neighbours_to_check: break  #if no intersection already, just skip
+                if search_number in grid_pencils[cell]:
+                    neighbours = get_neighbours(*cell)
+                    if neighbours_to_check == ["not_started"]:  #if this is the first
+                        neighbours_to_check = neighbours
+                        print("search",search_number,"first n",neighbours_to_check)
+                    else:
+                        # we've got a list of neighbours, is there any overlap with neighbours to check so far
+                        print("subsq neighbours",neighbours)
+                        new_nb=[]
+                        for nb in neighbours:
+                            if nb in neighbours_to_check:
+                                new_nb.append(nb)
+                        neighbours_to_check=new_nb
+                        print("intersect",neighbours_to_check)
+            if neighbours_to_check: # end of loop, not empty
+              if neighbours_to_check==["not_started"]:
+                    print("no neighbours - maybe number already in shape?")
+              else:
+                # this implies we can eliminate a value from a neighbour
+                print ("*Found a pencil to remove** ",neighbours_to_check, search_number)
+                for nb in neighbours_to_check:
+                    print("last cell=",cell,"neighbours to fix",nb,"number",search_number)
+
+                    if search_number in grid_pencils[nb]:
+                        print("***REMOVING**")
+                        pencils_erased+=1
+                        #if pencils_erased>12: debug_breakout=True
+                        display_pencils(*nb, colour="white")
+                        print("")
+                        grid_pencils[nb].remove(search_number)
+                        display_pencils(*nb,colour="red")
+                    else:
+                        #something's gone wrong, but let's still carry on to see the grid
+                        print ("no pencil found -- probably there's a full number there",nb,search_number)
+                print ("*have removed a pencil or found problem*")
+                #if cell[1]>7: debug_breakout=True
+
+
+    def tidy_pencils(found_number, r, c):
+        # now erase pencils of that number from shape and neighbours
+        this_shape = grid_shapes[r, c]
+        this_shape_coords = shape_coords.get(this_shape)
+        for cell in this_shape_coords:
+            if found_number in grid_pencils[cell]:
+                grid_pencils[cell].remove(found_number)
+                display_pencils(*cell, colour="white")
+        neighbours = get_neighbours(r, c)
+        for nb in neighbours:
+            if found_number in grid_pencils[nb]:
+                grid_pencils[nb].remove(found_number)
+                display_pencils(*nb, colour="white")
+
+
+    # NEW LOGIC TEST - Now fill in cell where only one candidate (pencil number)
+    for r in range(num_rows):
+        for c in range(num_cols):
+            pencils_here=grid_pencils[r,c]
+            if len(pencils_here)==1:
+                found_number=pencils_here[0]
+                display_pencils(r,c, colour="white")
+                grid[r,c]=found_number
+                grid_pencils[r,c]=[]
+                display_newnumber(found_number, (r,c), "orange")
+                found+=1
+                tidy_pencils(found_number,r,c)
+    #TODO: fix that when new number found, pencils still showing up sometimes
+
+    # NEW LOGIC TEST - check for shape with only one place that has a certain pencil number
+
+
+
+    for shape_number, shape in shape_coords.items():
+        shape_size = len(shape)
+        for search_number in range(1, shape_size + 1):  # number we're looking for
+            poss_cells = []  # keep tabs of how many solution cells
+            print(search_number,shape_number,shape)
+            for cell in shape:
+                #if shape_number == 27: print(cell, grid_pencils[cell])
+                if search_number in grid_pencils[cell]:
+                    poss_cells.append(cell)
+            if shape_number==27: print(poss_cells)
+            if len(poss_cells)==1:  # found a number
+                found_cell=poss_cells[0]
+                print("**FOUND CELL",found_cell,search_number)
+                display_pencils(*found_cell, colour="white")
+                grid[found_cell]=search_number
+                grid_pencils[found_cell]=[]
+                display_newnumber(search_number, found_cell, "red")
+                found+=1
+                tidy_pencils(search_number,*found_cell)
+
+
+
+
+    #Got to end of loop
+    if not found: stuck=True
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+print (grid_pencils)
 
 turtle.done()
 
