@@ -11,10 +11,16 @@ by Ashley,  April 2022
 import turtle, time, random
 import numpy as np
 
+
+
+
 # SETUP
 num_cols = 13
 num_rows = 10
 cell_draw_size = 40
+horiz_offset = cell_draw_size / 2
+vert_offset = cell_draw_size * .9
+display_build=False #show shapes  building up slowly, or jump in one go
 
 grid=np.zeros((num_rows, num_cols), dtype=int)
 grid_shapes=np.zeros((num_rows, num_cols), dtype=int)
@@ -22,7 +28,8 @@ grid_shapes=np.zeros((num_rows, num_cols), dtype=int)
 
 screen = turtle.Screen()
 screen.delay(0)
-screen.tracer(1)
+screen.tracer(0)
+if display_build: screen.tracer(1)
 
 pen = turtle.Turtle()
 pen.speed(0)
@@ -149,7 +156,7 @@ for shape_number in range(90):
     for cell in this_shape:
         grid_shapes[cell]=shape_number
     #print (grid_shapes)
-    time.sleep(0.2)
+    if display_build:  time.sleep(0.2)
 
     if this_shape==[]:
         print("bit stuck")
@@ -169,15 +176,65 @@ for shape_number in range(90):
             print("****finished?")
             break
 
-
-
-
 print(grid_shapes)
-
-
-
 draw_grid()
 
 
-turtle.done()
+shape_coords = {}
+for r in range(num_rows):
+    for c in range(num_cols):
+        this_shape = grid_shapes[r, c]
+        this_shape_coords = shape_coords.get(this_shape)
+        if not this_shape_coords:
+            this_shape_coords = []
+        this_shape_coords.append((r, c))
+        shape_coords[this_shape] = this_shape_coords
+
+
+#Ok, let's try to solve with a recursive function to make sure it's possible
+#let's do this one shape by shape shall we
+
+def display_newnumber(num, rc_tuple, colour="blue"):
+    xpos = start_coords[0] + cell_draw_size * rc_tuple[1] + horiz_offset
+    ypos = start_coords[1] - cell_draw_size * rc_tuple[0] - vert_offset  # down is negative
+    pen.setpos(xpos, ypos)
+    pen.color(colour)
+    pen.write(num, align="center", font=("Comic Sans MS", 18, "normal"))
+
+
+
+def iterate(cell_iter_no,num_to_try):
+    print (cell_iter_no)
+    success=False
+    r=cell_iter_no//num_cols
+    c=cell_iter_no%num_cols
+    shape_no=grid_shapes[(r,c)]
+    max_nums=len(shape_coords[shape_no])
+
+    #now let's check if valid
+
+
+    #if ok
+    grid[r,c]=num_to_try
+    cell_iter_no+=1
+    if cell_iter_no<num_rows*num_cols:
+        iterate(cell_iter_no,1)
+    else:
+        success=True
+
+
+
+cell_iter_no=0
+num_to_try=1
+iterate(cell_iter_no,num_to_try)
+
+print("hello!!")
+
+
+print(grid)
+
+
+
+
+#turtle.done()
 
