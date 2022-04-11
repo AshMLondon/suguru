@@ -30,6 +30,7 @@ def display_newnumber(num, rc_tuple, colour="blue"):
 import turtle, time
 import numpy as np
 
+
 # SETUP
 num_cols = 13
 num_rows = 10
@@ -38,35 +39,45 @@ cell_draw_size = 40
 # grid=np.zeros((num_rows, num_cols), dtype=int)
 # grid_shapes=np.zeros((num_rows, num_cols), dtype=int)
 
+use_original_puzzle=False
+self_generate_puzzle=True
 
-numbers_given_CSV = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0],
-    [0, 0, 0, 5, 3, 1, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 0],
-    [0, 0, 0, 0, 0, 0, 0, 5, 3, 0, 4, 0, 0],
-    [0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0],
-    [0, 0, 1, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-]
+if use_original_puzzle:
+    numbers_given_CSV = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0],
+        [0, 0, 0, 5, 3, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 0],
+        [0, 0, 0, 0, 0, 0, 0, 5, 3, 0, 4, 0, 0],
+        [0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0],
+        [0, 0, 1, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+    shape_as_CSV = [
+        [1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6],
+        [7, 8, 2, 2, 2, 9, 3, 3, 10, 5, 5, 5, 6],
+        [7, 8, 8, 2, 9, 9, 9, 10, 10, 10, 5, 11, 6],
+        [7, 7, 8, 12, 12, 9, 13, 13, 10, 14, 11, 11, 6],
+        [15, 7, 16, 16, 12, 12, 12, 13, 14, 14, 11, 11, 17],
+        [15, 15, 16, 16, 16, 18, 19, 13, 13, 14, 14, 17, 17],
+        [15, 20, 20, 20, 18, 18, 18, 21, 22, 22, 23, 17, 24],
+        [25, 25, 20, 26, 26, 18, 21, 21, 21, 23, 23, 23, 24],
+        [25, 25, 20, 27, 26, 26, 26, 21, 28, 28, 23, 24, 24],
+        [27, 27, 27, 27, 29, 29, 29, 29, 28, 28, 28, 24, 30],
+    ]
+    # use given numbers to create key arrays
+    grid = np.array(numbers_given_CSV)
+    grid_shapes = np.array(shape_as_CSV)
 
-shape_as_CSV = [
-    [1, 1, 1, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6],
-    [7, 8, 2, 2, 2, 9, 3, 3, 10, 5, 5, 5, 6],
-    [7, 8, 8, 2, 9, 9, 9, 10, 10, 10, 5, 11, 6],
-    [7, 7, 8, 12, 12, 9, 13, 13, 10, 14, 11, 11, 6],
-    [15, 7, 16, 16, 12, 12, 12, 13, 14, 14, 11, 11, 17],
-    [15, 15, 16, 16, 16, 18, 19, 13, 13, 14, 14, 17, 17],
-    [15, 20, 20, 20, 18, 18, 18, 21, 22, 22, 23, 17, 24],
-    [25, 25, 20, 26, 26, 18, 21, 21, 21, 23, 23, 23, 24],
-    [25, 25, 20, 27, 26, 26, 26, 21, 28, 28, 23, 24, 24],
-    [27, 27, 27, 27, 29, 29, 29, 29, 28, 28, 28, 24, 30],
-]
-# use given numbers to create key arrays
-grid = np.array(numbers_given_CSV)
-grid_shapes = np.array(shape_as_CSV)
+
+from gridgenerate import *
+
+
+
+
+
 
 # now create a dict of all shapes and their coords
 shape_coords = {}
@@ -94,91 +105,85 @@ pen = turtle.Turtle()
 pen.speed(0)
 # pen.hideturtle()
 
-start_coords = (-screen.window_width() / 2 + cell_draw_size, screen.window_height() / 2 - cell_draw_size)
 
-row_width = cell_draw_size * (num_cols - 1)
-line_light = 1
-line_heavy = 3
-
-pen.up()
-# pen.setpos(-row_width, +row_width)
-pen.setpos(start_coords)
-pen.down()
-#print(grid.shape)
-
-# DRAW ROWS
-for r in range(num_rows + 1):
-    for c in range(num_cols):
-        pen.width(line_light)
-        if r == 0:
-            pen.width(line_heavy)
-        elif r == num_rows:
-            pen.width(line_heavy)
-        else:
-            if grid_shapes[r - 1, c] != grid_shapes[r, c]: pen.width(line_heavy)
-        pen.forward(cell_draw_size)
-    pen.right(90)
+def draw_grid():
+    global start_coords, row_width, r, c
+    start_coords = (-screen.window_width() / 2 + cell_draw_size, screen.window_height() / 2 - cell_draw_size)
+    row_width = cell_draw_size * (num_cols - 1)
+    line_light = 1
+    line_heavy = 3
     pen.up()
-    pen.forward(cell_draw_size)
-    pen.left(90)
-    pen.backward(row_width + cell_draw_size)
+    # pen.setpos(-row_width, +row_width)
+    pen.setpos(start_coords)
     pen.down()
-
-# now columns
-pen.up()
-pen.setpos(start_coords)
-pen.down()
-pen.right(90)
-for c in range(num_cols + 1):
-    for r in range(num_rows):
-        pen.width(line_light)
-        if c == 0:
-            pen.width(line_heavy)
-        elif c == num_cols:
-            pen.width(line_heavy)
-        else:
-            if grid_shapes[r, c - 1] != grid_shapes[r, c]: pen.width(line_heavy)
+    # print(grid.shape)
+    # DRAW ROWS
+    for r in range(num_rows + 1):
+        for c in range(num_cols):
+            pen.width(line_light)
+            if r == 0:
+                pen.width(line_heavy)
+            elif r == num_rows:
+                pen.width(line_heavy)
+            else:
+                if grid_shapes[r - 1, c] != grid_shapes[r, c]: pen.width(line_heavy)
+            pen.forward(cell_draw_size)
+        pen.right(90)
+        pen.up()
         pen.forward(cell_draw_size)
-    pen.left(90)
+        pen.left(90)
+        pen.backward(row_width + cell_draw_size)
+        pen.down()
+    # now columns
     pen.up()
-    pen.forward(cell_draw_size)
-    pen.right(90)
-    pen.backward(cell_draw_size * num_rows)
+    pen.setpos(start_coords)
     pen.down()
-
-'''
-def blank_out_cell(r,c):
-    pen.setpos(start_coords[0]+r*cell_draw_size,start_coords[1]-c*cell_draw_size)
-    pen.fillcolor("white")
-    pen.setheading(0) #east
-    pen.begin_fill()
-    for i in range(4):
+    pen.right(90)
+    for c in range(num_cols + 1):
+        for r in range(num_rows):
+            pen.width(line_light)
+            if c == 0:
+                pen.width(line_heavy)
+            elif c == num_cols:
+                pen.width(line_heavy)
+            else:
+                if grid_shapes[r, c - 1] != grid_shapes[r, c]: pen.width(line_heavy)
+            pen.forward(cell_draw_size)
+        pen.left(90)
+        pen.up()
         pen.forward(cell_draw_size)
         pen.right(90)
-    pen.end_fill() 
-'''
+        pen.backward(cell_draw_size * num_rows)
+        pen.down()
 
 
-# now numbers
-pen.left(90)
-pen.up()
-pen.setpos(start_coords)
-horiz_offset = cell_draw_size / 2
-pen.forward(horiz_offset)  # centre horizontally
-pen.right(90)
-vert_offset = cell_draw_size * .9
-pen.forward(vert_offset)  # vertical adjustment
-pen.left(90)
-for r in range(num_rows):
-    for c in range(num_cols):
-        if grid[r, c] != 0:
-            pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
-        pen.forward(cell_draw_size)
-    pen.right(90)
-    pen.forward(cell_draw_size)
+draw_grid()
+
+
+def display_numbers():
+    global horiz_offset, vert_offset, r, c
+    # now numbers
     pen.left(90)
-    pen.backward(row_width + cell_draw_size)
+    pen.up()
+    pen.setpos(start_coords)
+    horiz_offset = cell_draw_size / 2
+    pen.forward(horiz_offset)  # centre horizontally
+    pen.right(90)
+    vert_offset = cell_draw_size * .9
+    pen.forward(vert_offset)  # vertical adjustment
+    pen.left(90)
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r, c] != 0:
+                pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
+            pen.forward(cell_draw_size)
+        pen.right(90)
+        pen.forward(cell_draw_size)
+        pen.left(90)
+        pen.backward(row_width + cell_draw_size)
 
+
+display_numbers()
 
 '''
 button1 = turtle.Turtle()
@@ -213,11 +218,10 @@ button.showturtle()
 
 stuck = False  # allow for constant loop so long as keep finding new numbers
 
-while not stuck:
 
-    found = 0
-    # let's set this before any logic tests -- keep count of any new finds to see if stuck or carry on looping
-
+def solve_one_in_shape():
+    global shape_number, shape, shape_size, cell
+    found=0
     # Logic Test 1 - Simple - Check If Shape Has Just 1 Number missing
     for shape_number, shape in shape_coords.items():
         shape_size = len(shape)
@@ -243,7 +247,15 @@ while not stuck:
             display_newnumber(missing_value, blank_posn)
             found += 1
             # TODO -- array of which numbers are original
+    return found
 
+
+while not stuck:
+
+    found = 0
+    # let's set this before any logic tests -- keep count of any new finds to see if stuck or carry on looping
+
+    found = found + solve_one_in_shape()
 
     # Logic Test 2 - Check if any cells have all but one number neighbouring
     for r in range(num_rows):
