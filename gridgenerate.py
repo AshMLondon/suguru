@@ -13,13 +13,13 @@ import numpy as np
 
 
 
-
 # SETUP
 num_cols = 13
 num_rows = 10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
+row_width = cell_draw_size * (num_cols - 1)
 display_build=False #show shapes  building up slowly, or jump in one go
 
 grid=np.zeros((num_rows, num_cols), dtype=int)
@@ -202,6 +202,17 @@ def display_newnumber(num, rc_tuple, colour="blue"):
     pen.write(num, align="center", font=("Comic Sans MS", 18, "normal"))
 
 
+def get_neighbours(r, c):
+    neighbours = []
+    for nb_r in range(r - 1, r + 2):
+        if 0 <= nb_r <= num_rows - 1:
+            for nb_c in range(c - 1, c + 2):
+                if 0 <= nb_c <= num_cols - 1:
+                    neighbours.append((nb_r, nb_c))
+    neighbours.remove((r, c))  # don't include itself
+    return neighbours
+
+
 
 def iterate(cell_iter_no,num_to_try):
     print (cell_iter_no)
@@ -209,18 +220,41 @@ def iterate(cell_iter_no,num_to_try):
     r=cell_iter_no//num_cols
     c=cell_iter_no%num_cols
     shape_no=grid_shapes[(r,c)]
-    max_nums=len(shape_coords[shape_no])
+    shapes=shape_coords[shape_no]
+    max_nums=len(shapes)
+
+    #try this number
+    grid[r,c]=num_to_try
 
     #now let's check if valid
-
+    valid=True
+    for shape in shapes:
+        if shape!=(r,c) and grid[shape]==num_to_try:
+            valid=False
+    neighbours=get_neighbours(r,c)
+    for nb in neighbours:
+        if grid[nb]==num_to_try:
+            valid=False
 
     #if ok
-    grid[r,c]=num_to_try
-    cell_iter_no+=1
-    if cell_iter_no<num_rows*num_cols:
-        iterate(cell_iter_no,1)
-    else:
-        success=True
+    if valid:
+        cell_iter_no+=1
+        if cell_iter_no<30: #num_rows*num_cols:
+            iterate(cell_iter_no,1)
+        else:
+            success=True
+    else: #not valid
+        if num_to_try<max_nums:
+            num_to_try+=1
+            iterate(cell_iter_no,num_to_try)
+        else:
+            grid[r,c]=0
+            #exit the iteration
+
+    return(success)
+
+
+
 
 
 
@@ -236,5 +270,27 @@ print(grid)
 
 
 
-#turtle.done()
+# now numbers
+pen.left(90)
+pen.up()
+pen.setpos(start_coords)
+horiz_offset = cell_draw_size / 2
+vert_offset = cell_draw_size * .9
+pen.forward(horiz_offset)  # centre horizontally
+pen.right(90)
+
+pen.forward(vert_offset)  # vertical adjustment
+pen.left(90)
+for r in range(num_rows):
+    for c in range(num_cols):
+        if grid[r, c] != 0:
+            pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
+        pen.forward(cell_draw_size)
+    pen.right(90)
+    pen.forward(cell_draw_size)
+    pen.left(90)
+    pen.backward(row_width + cell_draw_size)
+
+
+turtle.done()
 
