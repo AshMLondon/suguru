@@ -73,10 +73,7 @@ if use_original_puzzle:
 
 
 from gridgenerate import *
-
-
-
-
+print ("**HELLO**")
 
 
 # now create a dict of all shapes and their coords
@@ -89,6 +86,16 @@ for r in range(num_rows):
             this_shape_coords = []
         this_shape_coords.append((r, c))
         shape_coords[this_shape] = this_shape_coords
+
+
+if self_generate_puzzle:
+    for i in range(12):
+        shape = random.choice(list(shape_coords.values()))
+        shape_size = len(shape)
+        cell = random.choice(shape)
+        value=random.randint(1, shape_size)
+        grid[cell] = value
+        print("gs ",cell,value)
 
 #print(shape_coords)
 
