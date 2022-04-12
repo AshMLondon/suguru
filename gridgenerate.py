@@ -14,8 +14,8 @@ import numpy as np
 
 
 # SETUP
-num_cols = 13
-num_rows = 10
+num_cols = 6 #13
+num_rows = 5 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
@@ -109,75 +109,99 @@ def fill_cell(coord,colour="orange"):
 
 
 
-######START HERE
+random_gen=True
 
-start_point=(5,5)
+if random_gen:
 
-this_point=start_point
-#moves=["up","down","left","right"]
-move_coord=[(-1,0),(1,0),(0,-1),(0,1),(0,0)]
-colours=["orange","blue","green","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]
+    ######START GENERATING RANDOM GRID HERE
 
-for shape_number in range(90):
-    this_shape = []
-    length = 0
-    #colour=colours[shape_number%len(colours)]
-    colour=random_colour()
-    #colour=(random.randint(5,95),random.randint(5,95),random.randint(0,95))
-    keep_going=True
-    tries=0
-    while keep_going:
-        choice=random.randint(0,4)
-        move=move_coord[choice]
-        new_point = tuple(np.add(this_point,move))
+    start_point=(5,5)
 
-        #check valid
-        valid=True
-        if not(0 <= new_point[0] <= num_rows-1): valid=False
-        if not (0 <= new_point[1] <= num_cols-1): valid = False
-        if valid and grid_shapes[new_point]>0: valid=False
+    this_point=start_point
+    #moves=["up","down","left","right"]
+    move_coord=[(-1,0),(1,0),(0,-1),(0,1),(0,0)]
+    colours=["orange","blue","green","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]
 
-        if valid:
-            this_point=new_point
-            if this_point not in this_shape:
-                this_shape.append(this_point)
-                fill_cell(this_point,colour)
-                length+=1
-            if length==5: keep_going=False
-        else:
-            if length==0 and tries>999995:
+    for shape_number in range(90):
+        this_shape = []
+        length = 0
+        #colour=colours[shape_number%len(colours)]
+        colour=random_colour()
+        #colour=(random.randint(5,95),random.randint(5,95),random.randint(0,95))
+        keep_going=True
+        tries=0
+        while keep_going:
+            choice=random.randint(0,4)
+            move=move_coord[choice]
+            new_point = tuple(np.add(this_point,move))
+
+            #check valid
+            valid=True
+            if not(0 <= new_point[0] <= num_rows-1): valid=False
+            if not (0 <= new_point[1] <= num_cols-1): valid = False
+            if valid and grid_shapes[new_point]>0: valid=False
+
+            if valid:
                 this_point=new_point
-                print("stuck",this_point)
+                if this_point not in this_shape:
+                    this_shape.append(this_point)
+                    fill_cell(this_point,colour)
+                    length+=1
+                if length==5: keep_going=False
+            else:
+                if length==0 and tries>999995:
+                    this_point=new_point
+                    print("stuck",this_point)
 
-        tries+=1
-        if tries>35: keep_going=False
+            tries+=1
+            if tries>35: keep_going=False
 
-    print("shape: ",shape_number, "length: ",length, "tries: ",tries) #this_shape)
-    for cell in this_shape:
-        grid_shapes[cell]=shape_number
-    #print (grid_shapes)
-    if display_build:  time.sleep(0.2)
+        print("shape: ",shape_number, "length: ",length, "tries: ",tries) #this_shape)
+        for cell in this_shape:
+            grid_shapes[cell]=shape_number
+        #print (grid_shapes)
+        if display_build:  time.sleep(0.2)
 
-    if this_shape==[]:
-        print("bit stuck")
-        #bit stuck - find some blank space to go back to
-        empty_cell=[]
-        for r in range(num_rows):
-            if empty_cell: break
-            for c in range(num_cols):
-                if grid_shapes[r,c]==0:
-                    empty_cell=(r,c)
-                    print("stuck outcome:",empty_cell)
-                    break
-        if empty_cell:
-            this_point=empty_cell
-        else:
-            #we've finished
-            print("****finished?")
-            break
+        if this_shape==[]:
+            print("bit stuck")
+            #bit stuck - find some blank space to go back to
+            empty_cell=[]
+            for r in range(num_rows):
+                if empty_cell: break
+                for c in range(num_cols):
+                    if grid_shapes[r,c]==0:
+                        empty_cell=(r,c)
+                        print("stuck outcome:",empty_cell)
+                        break
+            if empty_cell:
+                this_point=empty_cell
+            else:
+                #we've finished
+                print("****finished?")
+                break
+
+else:
+
+    grid_shapes=np.array([[6, 3 ,3 ,3 ,3 ,4],
+            [6, 3, 2, 2, 2, 4],
+            [6, 7, 2, 2, 1, 4],
+            [6, 7, 7 ,1 ,1 ,4],
+            [6, 7, 7, 1, 1, 9]])
+
+
+    grid_shapes2=   np.array( [[ 3,  3,  3,  6,  6,  6],
+                [ 3,  4,  2,  2,  2,  6],
+     [ 3,  4,  4,  2,  2,  6],
+     [ 4,  4, 10,  1,  1,  1],
+     [ 8,  8,  8,  8,  1,  1]])
+
+
 
 print(grid_shapes)
 draw_grid()
+
+
+
 
 
 shape_coords = {}
@@ -212,10 +236,19 @@ def get_neighbours(r, c):
     neighbours.remove((r, c))  # don't include itself
     return neighbours
 
+print("****SOLVING****")
+print("****SOLVING****")
+print("****SOLVING****")
 
 
-def iterate(cell_iter_no,num_to_try):
-    print (cell_iter_no)
+iterate_cell_count=0
+iterate_number_count=0
+start_time=time.time()
+
+
+def iterate(cell_iter_no):
+    global iterate_number_count,iterate_cell_count
+    #print (cell_iter_no)
     success=False
     r=cell_iter_no//num_cols
     c=cell_iter_no%num_cols
@@ -223,52 +256,78 @@ def iterate(cell_iter_no,num_to_try):
     shapes=shape_coords[shape_no]
     max_nums=len(shapes)
 
-    #try this number
-    grid[r,c]=num_to_try
+    for num_to_try in range(1,max_nums+1):
 
-    #now let's check if valid
-    valid=True
-    for shape in shapes:
-        if shape!=(r,c) and grid[shape]==num_to_try:
-            valid=False
-    neighbours=get_neighbours(r,c)
-    for nb in neighbours:
-        if grid[nb]==num_to_try:
-            valid=False
+        #try this number
+        grid[r,c]=num_to_try
+        iterate_number_count+=1
+        #if iterate_number_count%500==0:
+        #    display_newnumber("@",(r,c),"white")
+        #    display_newnumber(num_to_try,(r,c))
+        #print ("#",cell_iter_no,"rc",r,c,"num",num_to_try)
 
-    #if ok
-    if valid:
-        cell_iter_no+=1
-        if cell_iter_no<30: #num_rows*num_cols:
-            iterate(cell_iter_no,1)
-        else:
-            success=True
-    else: #not valid
-        if num_to_try<max_nums:
-            num_to_try+=1
-            iterate(cell_iter_no,num_to_try)
-        else:
-            grid[r,c]=0
-            #exit the iteration
+        #now let's check if valid
+        valid=True
+        for shape in shapes:
+            if shape!=(r,c) and grid[shape]==num_to_try:
+                valid=False
+        neighbours=get_neighbours(r,c)
+        for nb in neighbours:
+            if grid[nb]==num_to_try:
+                valid=False
 
+        #if ok
+        if valid:
+            if cell_iter_no<num_rows*num_cols-1:
+                iterate_cell_count+=1
+
+                if iterate_cell_count%1000==0:
+                    elapsed=time.time()-start_time
+                    if not elapsed:
+                        rate=0
+                    else:
+                        rate=iterate_cell_count/elapsed
+                    print ("iterate counts",iterate_cell_count,iterate_number_count, "time",elapsed, "rate",rate)
+                result=iterate(cell_iter_no+1)
+                if result:
+                    success=True
+                    break
+                else:
+
+                    success=False #keep trying numbers
+
+            else:
+                # we've actually completed
+                success=True
+
+
+                break
+
+        #otherwise go up a number in for loop
+        grid[r, c] = 0
+        #display_newnumber(num_to_try, (r, c),"white")
+
+    if not success:
+        #run out of numbers in this cell
+        grid[r,c]=0
+
+
+
+    #print(grid)
     return(success)
 
 
 
 
+success=iterate(0)
+print ("success?",success)
+print (grid)
+print (grid_shapes)
 
+elapsed = time.time() - start_time
+end_rate=iterate_cell_count / elapsed
 
-cell_iter_no=0
-num_to_try=1
-iterate(cell_iter_no,num_to_try)
-
-print("hello!!")
-
-
-print(grid)
-
-
-
+print("time", elapsed, "rate", end_rate)
 
 # now numbers
 pen.left(90)
