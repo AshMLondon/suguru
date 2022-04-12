@@ -14,7 +14,7 @@ import numpy as np
 
 
 # SETUP
-num_cols = 6 #13
+num_cols = 7 #13
 num_rows = 5 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
@@ -246,9 +246,20 @@ iterate_number_count=0
 start_time=time.time()
 
 
+#to save time with a large recursive function, use some additional data lookups
+
+iter_shapes={} #not working yet!!
+for i in range(num_cols*num_rows):
+    r = i // num_cols
+    c = i % num_cols
+    shape_no=grid_shapes[r,c]
+    shapes = shape_coords[shape_no]
+    max_nums = len(shapes)
+    iter_shapes[i]=(max_nums,shapes)
+
+
 def iterate(cell_iter_no):
     global iterate_number_count,iterate_cell_count
-    #print (cell_iter_no)
     success=False
     r=cell_iter_no//num_cols
     c=cell_iter_no%num_cols
@@ -256,9 +267,13 @@ def iterate(cell_iter_no):
     shapes=shape_coords[shape_no]
     max_nums=len(shapes)
 
-    for num_to_try in range(1,max_nums+1):
+    nums_avail=list(range(1,max_nums+1))
+    for shape in shapes:
+        if grid[shape] in nums_avail:
+            nums_avail.remove(grid[shape])
 
-        #try this number
+
+    for num_to_try in nums_avail:
         grid[r,c]=num_to_try
         iterate_number_count+=1
         #if iterate_number_count%500==0:
@@ -268,20 +283,21 @@ def iterate(cell_iter_no):
 
         #now let's check if valid
         valid=True
-        for shape in shapes:
-            if shape!=(r,c) and grid[shape]==num_to_try:
-                valid=False
+        # for shape in shapes:
+        #     if shape!=(r,c) and grid[shape]==num_to_try:
+        #         valid=False
         neighbours=get_neighbours(r,c)
         for nb in neighbours:
             if grid[nb]==num_to_try:
                 valid=False
+                break
 
         #if ok
         if valid:
             if cell_iter_no<num_rows*num_cols-1:
                 iterate_cell_count+=1
 
-                if iterate_cell_count%1000==0:
+                if iterate_cell_count%10000==0:
                     elapsed=time.time()-start_time
                     if not elapsed:
                         rate=0
@@ -327,6 +343,7 @@ print (grid_shapes)
 elapsed = time.time() - start_time
 end_rate=iterate_cell_count / elapsed
 
+print ("iterate counts",iterate_cell_count,iterate_number_count)
 print("time", elapsed, "rate", end_rate)
 
 # now numbers
