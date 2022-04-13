@@ -12,7 +12,10 @@ import turtle, time, random
 import numpy as np
 
 
-verbose=False
+verbose=True
+
+# TODO: spot fatal shapes -- C shape and big right angle, and skip if they happen
+# TODO: change recursion to iteration and see if that speeds things up
 
 
 # SETUP
@@ -273,7 +276,7 @@ while not found_one_yet:
         iter_nonshape_neighbours[i]=neighbours
 
 
-    def iterate(cell_iter_no):
+    def recurse(cell_iter_no):
         global iterate_number_count,iterate_cell_count, max_iters
         success=False
         rc=row_col[cell_iter_no]
@@ -322,8 +325,8 @@ while not found_one_yet:
                             rate=0
                         else:
                             rate=iterate_cell_count/elapsed
-                        #print ("iterate counts",iterate_cell_count,iterate_number_count, "time",elapsed, "rate",rate)
-                    result=iterate(cell_iter_no+1)
+                        print ("iterate counts",iterate_cell_count,iterate_number_count, "time",elapsed, "rate",rate)
+                    result=recurse(cell_iter_no + 1)
                     if result:
                         success=True
                         break
@@ -352,8 +355,105 @@ while not found_one_yet:
         return(success)
 
 
-    max_iters = 50000
-    success=iterate(0)
+    def real_iterate():
+        global iterate_number_count,iterate_cell_count, max_iters
+        success=False
+        numbers_to_try_stack={}
+        cell_iter_no = 0
+        keep_iterating=True
+        next_step="starting"
+        while keep_iterating:
+            #let's start loop off
+            print("next step",next_step)
+            if next_step=="ascend":
+                if cell_iter_no<num_rows*num_cols-1: #TODO create variable
+                    cell_iter_no+=1
+                    iterate_cell_count += 1
+                    if iterate_cell_count % 1 == 0:
+                        elapsed = time.time() - start_time
+                        if not elapsed:
+                            rate = 0
+                        else:
+                            rate = iterate_cell_count / elapsed
+                        print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,"time", elapsed, "rate", rate)
+                else:
+                    #got as far as end cell - complete
+                    print ("*complete*")
+                    success=True
+                break
+
+            if next_step=="descend":
+                grid[rc]=0
+                cell_iter_no-=1
+                if cell_iter_no<0:
+                    next_step="FAIL"
+                    break
+
+            rc = row_col[cell_iter_no]
+            print ("rc",rc)
+
+            if next_step=="ascend" or next_step=="starting":
+                max_nums,shapes=iter_shapes[cell_iter_no]
+                nums_avail=list(range(1,max_nums+1))
+                for shape in shapes:
+                    this_num=grid[shape]
+                    if this_num in nums_avail:
+                        nums_avail.remove(this_num)
+                numbers_to_try_stack[cell_iter_no] = nums_avail
+
+            elif next_step=="descend":
+                max_nums, shapes = iter_shapes[cell_iter_no]  #TODO do we need shapes now?
+                nums_avail = numbers_to_try_stack[cell_iter_no]
+
+            #now we actually iterate do we?
+            print ("where we're at",cell_iter_no,nums_avail)
+
+            if not nums_avail:
+                #run out of numbers for cell, retreat
+                next_step="retreat"
+            else:
+                num_to_try = nums_avail.pop(0)
+                numbers_to_try_stack[cell_iter_no] = nums_avail
+
+                grid[rc]=num_to_try
+                iterate_number_count+=1
+                #now let's check if valid
+                valid=True
+                neighbours=iter_nonshape_neighbours[cell_iter_no]
+                for nb in neighbours:
+                    if grid[nb]==num_to_try:
+                        valid=False
+                        break
+
+                #if ok - ascend a level in iteration
+                if valid:
+                    if cell_iter_no<num_rows*num_cols-1 and iterate_cell_count<max_iters:
+                        iterate_cell_count+=1
+                        next_step="ascend"
+                        if iterate_cell_count%10000==0:
+                            elapsed=time.time()-start_time
+                            if not elapsed:
+                                rate=0
+                            else:
+                                rate=iterate_cell_count/elapsed
+                            print ("iterate counts",iterate_cell_count,iterate_number_count, "time",elapsed, "rate",rate)
+
+                else:
+                    #doesn't work try next number
+                    next_step="inc_number"
+                    grid[rc] = 0
+
+
+            #this is end of while loop I think
+
+
+        #print(grid)
+        return(success)
+
+
+
+    max_iters = 1e99 #50000
+    success=real_iterate()
     if iterate_cell_count>=max_iters: success=False
 
     if success:
@@ -362,7 +462,10 @@ while not found_one_yet:
         print (grid_shapes)
 
     elapsed = time.time() - start_time
-    end_rate=iterate_cell_count / elapsed
+    if elapsed>0:
+        end_rate=iterate_cell_count / elapsed
+    else:
+        end_rate=0
 
     if verbose:
         print ("iterate counts",iterate_cell_count,iterate_number_count)
@@ -393,7 +496,7 @@ while not found_one_yet:
 
 
     grids_tried+=1
-    if success:
+    if success or grids_tried>0:
         found_one_yet=True
 
 print ("total grids tried",grids_tried)
