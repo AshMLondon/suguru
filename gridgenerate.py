@@ -6,22 +6,27 @@ by Ashley,  April 2022
 """
 
 
-
-
 import turtle, time, random
 import numpy as np
 
 
 verbose=False
 max_iters = 200000
+outer_loop=True
+stop_on_success=False
+grids_to_try = 50  #if not stop on success how long to continue
+success_count=0
+
+all_shape_count={}
+success_shape_count={}
 
 # TODO: spot fatal shapes -- C shape and big right angle, and skip if they happen
 # TODO: change recursion to iteration and see if that speeds things up
 
 
 # SETUP
-num_cols = 13 #13
-num_rows = 10 #10
+num_cols = 7 #13
+num_rows = 5 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
@@ -32,6 +37,7 @@ display_build=False #show shapes  building up slowly, or jump in one go
 grids_tried=0
 found_one_yet=False
 
+# OUTER LOOP -- run at least once
 while not found_one_yet:
 
     grid=np.zeros((num_rows, num_cols), dtype=int)
@@ -212,10 +218,6 @@ while not found_one_yet:
     if verbose: print(grid_shapes)
     draw_grid()
 
-
-
-
-
     shape_coords = {}
     for r in range(num_rows):
         for c in range(num_cols):
@@ -227,8 +229,67 @@ while not found_one_yet:
             shape_coords[this_shape] = this_shape_coords
 
 
-    #Ok, let's try to solve with a recursive function to make sure it's possible
-    #let's do this one shape by shape shall we
+    def translated_shapes(shape_in):
+        # work out rotations and reflections
+        translations=[(1,1),(1,-1),(-1,1),(-1,-1)]
+        shape_array=np.array(shape_in)
+        my_array=shape_array.copy()
+        my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy()
+        shape_array_switched=my_array
+        shapes_out=[]
+
+        #my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy()
+        #we can do swap row and column which does some kind of ?rotate?
+
+        for tr in translations:
+            #res1=(shape_array * tr).tolist()
+            #res1tuple=[(i[0], i[1]) for i in res1]
+            # shapes_out.append(res1tuple)
+            shapes_out.append((shape_array * tr).tolist())
+
+            #res2=(shape_array_switched * tr).tolist()
+            #res2tuple=[(i[0], i[1]) for i in res1]
+            #shapes_out.append(res2tuple)
+            shapes_out.append((shape_array_switched * tr).tolist())
+        return shapes_out
+
+
+    '''
+    # CHECK SHAPES -- want to understand what sort of shapes there are and if any are 'fatal' (eg C, big angle)
+    bad_shapes_single = [[(0, 0), (0, 1), (1, 0), (2, 0), (2, 1)]]  # start with a c shape
+    print (bad_shapes_single)
+    bad_shapes = translated_shapes(bad_shapes_single)
+    print(bad_shapes)
+    for shape_no,shape in shape_coords.items():
+        #I intended to sort shape coords, but they start off in right order b/c of way generated
+        first_coord=shape[0]
+        #rebased_shape = [(x[0]-first_coord[0],x[1]-first_coord[1]) for x in shape] #my first list comprehension!!
+        rebased_shape_array=np.array(shape)-first_coord
+        rebased_shape=rebased_shape_array.tolist()
+        print (shape_no,shape,rebased_shape)
+
+        if False: #rebased_shape in bad_shapes:
+            print ("***BAD SHAPE**")
+            bad_shape_here=True
+            for cell in shape:
+                fill_cell(cell,"red")
+
+    #if shape is bad then do something?
+    '''
+
+    #keep count on which shapes are used - useful when looping multiple grids
+    for shape_no, shape in shape_coords.items():
+        # I intended to sort shape coords, but they start off in right order b/c of way generated
+        first_coord = shape[0]
+        rebased_shape = [(x[0]-first_coord[0],x[1]-first_coord[1]) for x in shape] #my first list comprehension!!
+        #rebased_shape_array = np.array(shape) - first_coord
+        rebased_shape=tuple(rebased_shape)
+        if rebased_shape in all_shape_count:
+            all_shape_count[rebased_shape]+=1
+        else:
+            all_shape_count[rebased_shape]=1
+
+
 
     def display_newnumber(num, rc_tuple, colour="blue"):
         xpos = start_coords[0] + cell_draw_size * rc_tuple[1] + horiz_offset
@@ -461,12 +522,27 @@ while not found_one_yet:
 
 
     success=real_iterate()
+
     if iterate_cell_count>=max_iters: success=False
 
     if success:
+        success_count+=1
         print ("success?",success)
         print (grid)
         print (grid_shapes)
+
+        # keep count on which shapes are used - SUCCESS VERSION -  useful when looping multiple grids
+        for shape_no, shape in shape_coords.items():
+            # I intended to sort shape coords, but they start off in right order b/c of way generated
+            first_coord = shape[0]
+            rebased_shape = [(x[0] - first_coord[0], x[1] - first_coord[1]) for x in
+                             shape]  # my first list comprehension!!
+            # rebased_shape_array = np.array(shape) - first_coord
+            rebased_shape = tuple(rebased_shape)
+            if rebased_shape in success_shape_count:
+                success_shape_count[rebased_shape] += 1
+            else:
+                success_shape_count[rebased_shape] = 1
 
     elapsed = time.time() - start_time
     if elapsed>0:
@@ -478,29 +554,32 @@ while not found_one_yet:
         print (f"tries: {grids_tried}  iterate counts",iterate_cell_count,iterate_number_count,"time", elapsed, "rate", end_rate)
 
     # now numbers
-    screen.tracer(1)
-    pen.left(90)
-    pen.up()
-    pen.setpos(start_coords)
-    horiz_offset = cell_draw_size / 2
-    vert_offset = cell_draw_size * .9
-    pen.forward(horiz_offset)  # centre horizontally
-    pen.right(90)
-    screen.tracer(0)
-
-    pen.forward(vert_offset)  # vertical adjustment
-    pen.left(90)
-    for r in range(num_rows):
-        for c in range(num_cols):
-            if grid[r, c] != 0:
-                pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
-            pen.forward(cell_draw_size)
-        pen.right(90)
-        pen.forward(cell_draw_size)
+    def display_numbers():
+        screen.tracer(1)
         pen.left(90)
-        pen.backward(row_width + cell_draw_size)
+        pen.up()
+        pen.setpos(start_coords)
+        horiz_offset = cell_draw_size / 2
+        vert_offset = cell_draw_size * .9
+        pen.forward(horiz_offset)  # centre horizontally
+        pen.right(90)
+        screen.tracer(0)
 
-    screen.tracer(0)
+        pen.forward(vert_offset)  # vertical adjustment
+        pen.left(90)
+        for r in range(num_rows):
+            for c in range(num_cols):
+                if grid[r, c] != 0:
+                    pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
+                pen.forward(cell_draw_size)
+            pen.right(90)
+            pen.forward(cell_draw_size)
+            pen.left(90)
+            pen.backward(row_width + cell_draw_size)
+
+        screen.tracer(0)
+
+    display_numbers()
 
 
 
@@ -509,7 +588,52 @@ while not found_one_yet:
     if success or grids_tried>0:
         found_one_yet=success   #True to stop
 
-print ("total grids tried",grids_tried)
+    if not stop_on_success:
+        found_one_yet=(grids_tried>=grids_to_try)
+
+    if not(outer_loop): found_one_yet=True  #stop if not meant to be outer looping
+
+print ("**FINISHED** total grids tried",grids_tried, f"successes {success_count}")
+
+print("******SHAPES*****")
+
+for sh in all_shape_count:
+    print (all_shape_count[sh],success_shape_count.get(sh),sh)
+
+print ("total different shapes:", len(all_shape_count))
+
+print ("*****THAT WAS RAW SCORES***** ")
+print("****NOW FOR COLLATING.....****")
+collated_list={}
+for sh in all_shape_count:
+    shape_permutations=translated_shapes(sh)
+    lowest_perm=shape_permutations.copy()
+    lowest_perm.sort()
+    lowest_perm=lowest_perm[0]
+
+    lowest_perm_string = str(lowest_perm)
+    if lowest_perm_string in collated_list:
+        orig_score=collated_list[lowest_perm_string]
+        new_score_0=orig_score[0]+all_shape_count[sh]
+        new_score_1=0
+        if orig_score[1]:
+            new_score=orig_score[1]
+        new_score=(new_score_0,new_score_1)
+
+        #score_here=(score_here[0]+all_shape_count[sh],score_here[1]+success_shape_count.get(sh))
+    else:
+        new_score=(all_shape_count[sh],success_shape_count.get(sh))
+    collated_list[lowest_perm_string]=new_score
+
+print(collated_list)
+
+for sh in collated_list:
+    print (collated_list[sh],sh)
+
+print ("length: ",len(collated_list))
+
+
+
 
 
 
