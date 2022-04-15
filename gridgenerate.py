@@ -12,15 +12,16 @@ import turtle, time, random
 import numpy as np
 
 
-verbose=True
+verbose=False
+max_iters = 200000
 
 # TODO: spot fatal shapes -- C shape and big right angle, and skip if they happen
 # TODO: change recursion to iteration and see if that speeds things up
 
 
 # SETUP
-num_cols = 10 #13
-num_rows = 6 #10
+num_cols = 13 #13
+num_rows = 10 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
@@ -319,13 +320,15 @@ while not found_one_yet:
                 if cell_iter_no<num_rows*num_cols-1 and iterate_cell_count<max_iters:
                     iterate_cell_count+=1
 
-                    if iterate_cell_count%10000==0:
-                        elapsed=time.time()-start_time
-                        if not elapsed:
-                            rate=0
-                        else:
-                            rate=iterate_cell_count/elapsed
-                        print ("iterate counts",iterate_cell_count,iterate_number_count, "time",elapsed, "rate",rate)
+                    if verbose:
+                        if iterate_cell_count%10000==0:
+                            elapsed=time.time()-start_time
+                            if not elapsed:
+                                rate=0
+                            else:
+                                rate=iterate_cell_count/elapsed
+                            print (f"iterate counts {iterate_cell_count:,}",'{:,}'.format(iterate_number_count), "time",elapsed, "rate",rate)
+                            #f"{num:,}"
                     result=recurse(cell_iter_no + 1)
                     if result:
                         success=True
@@ -364,23 +367,24 @@ while not found_one_yet:
         next_step="starting"
         while keep_iterating:
             #let's start loop off
-            print("next step",next_step)
+            #print("next step",next_step)
             if next_step=="ascend":
                 if cell_iter_no<num_rows*num_cols-1: #TODO create variable
                     cell_iter_no+=1
                     iterate_cell_count += 1
-                    if iterate_cell_count % 1 == 0:
-                        elapsed = time.time() - start_time
-                        if not elapsed:
-                            rate = 0
-                        else:
-                            rate = iterate_cell_count / elapsed
-                        print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,"time", elapsed, "rate", rate)
+                    if verbose:
+                        if iterate_cell_count % 50000 == 0:
+                            elapsed = time.time() - start_time
+                            if not elapsed:
+                                rate = 0
+                            else:
+                                rate = iterate_cell_count / elapsed
+                            print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,"time", elapsed, "rate", rate)
                 else:
                     #got as far as end cell - complete
                     print ("*complete*")
                     success=True
-                break
+                    break
 
             if next_step=="descend":
                 grid[rc]=0
@@ -390,7 +394,7 @@ while not found_one_yet:
                     break
 
             rc = row_col[cell_iter_no]
-            print ("rc",rc)
+            #print ("rc",rc)
 
             if next_step=="ascend" or next_step=="starting":
                 max_nums,shapes=iter_shapes[cell_iter_no]
@@ -406,11 +410,11 @@ while not found_one_yet:
                 nums_avail = numbers_to_try_stack[cell_iter_no]
 
             #now we actually iterate do we?
-            print ("where we're at",cell_iter_no,nums_avail)
+            #print ("where we're at",cell_iter_no,nums_avail)
 
             if not nums_avail:
                 #run out of numbers for cell, retreat
-                next_step="retreat"
+                next_step="descend"
             else:
                 num_to_try = nums_avail.pop(0)
                 numbers_to_try_stack[cell_iter_no] = nums_avail
@@ -448,11 +452,14 @@ while not found_one_yet:
 
 
         #print(grid)
+        #END OF ITERATION
         return(success)
 
 
 
-    max_iters = 1e99 #50000
+
+
+
     success=real_iterate()
     if iterate_cell_count>=max_iters: success=False
 
@@ -467,11 +474,11 @@ while not found_one_yet:
     else:
         end_rate=0
 
-    if verbose:
-        print ("iterate counts",iterate_cell_count,iterate_number_count)
-        print("time", elapsed, "rate", end_rate)
+    if True: #verbose:
+        print (f"tries: {grids_tried}  iterate counts",iterate_cell_count,iterate_number_count,"time", elapsed, "rate", end_rate)
 
     # now numbers
+    screen.tracer(1)
     pen.left(90)
     pen.up()
     pen.setpos(start_coords)
@@ -479,6 +486,7 @@ while not found_one_yet:
     vert_offset = cell_draw_size * .9
     pen.forward(horiz_offset)  # centre horizontally
     pen.right(90)
+    screen.tracer(0)
 
     pen.forward(vert_offset)  # vertical adjustment
     pen.left(90)
@@ -492,12 +500,14 @@ while not found_one_yet:
         pen.left(90)
         pen.backward(row_width + cell_draw_size)
 
+    screen.tracer(0)
+
 
 
 
     grids_tried+=1
     if success or grids_tried>0:
-        found_one_yet=True
+        found_one_yet=success   #True to stop
 
 print ("total grids tried",grids_tried)
 
