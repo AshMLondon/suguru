@@ -11,16 +11,16 @@ import numpy as np
 import pandas as pd
 
 
-num_cols = 7 #13
-num_rows = 5 #10
+num_cols = 8 #13
+num_rows = 6 #10
 
 
 eliminate_fatal_shapes=True
 verbose=False
-max_iters = 2000000
+max_iters = 9000000
 outer_loop=True
 stop_on_success=False
-grids_to_try = 20  #if not stop on success how long to continue
+grids_to_try = 400  #if not stop on success how long to continue
 success_count=0
 timeouts_count=0
 
@@ -695,8 +695,13 @@ standard_shapes = [
 "seahorse",[[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]],
 "cross",[[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
 ]
-
-
+names=[]
+shapes=[]
+for count,val in enumerate(standard_shapes):
+    if count%2==0:
+        names.append(val)
+    else:
+        shapes.append(val)
 
 all_tot=0
 success_tot=0
@@ -738,26 +743,32 @@ for sh in all_shape_count:
 
 #print(collated_list)
 
+any_new_shapes=False
 all_tot = 0
 success_tot = 0
 for sh in collated_list:
     #print (collated_list[sh],sh)
     all_tot += collated_list[sh][0]
     success_tot += 0 if collated_list[sh][1] is None else collated_list[sh][1]
+    sh_list_form=eval(sh) #convert back from string to a list
+    if sh_list_form not in standard_shapes:
+        print ("**********NEW SHAPE FOUND!!!**********")
+        print(sh)
+        any_new_shapes=True
+        #I don't  expect this to happen!
+
+
 
 print ("length: ",len(collated_list))
 print ("total all  shapes",all_tot,"total success",success_tot)
 
+# check all shapes found appear in standard shapes list
+
+
+
+
+
 #create a dataframe of collated list
-
-names=[]
-shapes=[]
-for count,val in enumerate(standard_shapes):
-    if count%2==0:
-        names.append(val)
-    else:
-        shapes.append(val)
-
 #loop through standard shapes, create a column for name, shape, total , success, success %
 
 all_tot = 0
@@ -800,6 +811,10 @@ print(df.drop(columns=["shape"]))
 
 print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
 #a duplicate
+if any_new_shapes:
+    print ("*****NEW SHAPE FOUND&********")
+else:
+    print ("(no new shapes)")
 
 
 
