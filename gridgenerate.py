@@ -11,11 +11,16 @@ import numpy as np
 import pandas as pd
 
 
+num_cols = 7 #13
+num_rows = 5 #10
+
+
+eliminate_fatal_shapes=True
 verbose=False
-max_iters = 200000
+max_iters = 2000000
 outer_loop=True
 stop_on_success=False
-grids_to_try = 50  #if not stop on success how long to continue
+grids_to_try = 20  #if not stop on success how long to continue
 success_count=0
 timeouts_count=0
 
@@ -27,8 +32,6 @@ success_shape_count={}
 
 
 # SETUP
-num_cols = 6 #13
-num_rows = 5 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
@@ -38,6 +41,129 @@ display_build=False #show shapes  building up slowly, or jump in one go
 
 grids_tried=0
 found_one_yet=False
+fatal_eliminated=0
+
+
+screen = turtle.Screen()
+screen.delay(0)
+screen.tracer(0)
+if display_build: screen.tracer(1)
+
+pen = turtle.Turtle()
+pen.speed(0)
+
+
+def draw_grid():
+    global start_coords, r, c
+    start_coords = (-screen.window_width() / 2 + cell_draw_size, screen.window_height() / 2 - cell_draw_size)
+    row_width = cell_draw_size * (num_cols - 1)
+    line_light = 1
+    line_heavy = 3
+    pen.up()
+    # pen.setpos(-row_width, +row_width)
+    pen.setpos(start_coords)
+    pen.down()
+    # print(grid.shape)
+    # DRAW ROWS
+    for r in range(num_rows + 1):
+        for c in range(num_cols):
+            pen.width(line_light)
+            if r == 0:
+                pen.width(line_heavy)
+            elif r == num_rows:
+                pen.width(line_heavy)
+            else:
+                if grid_shapes[r - 1, c] != grid_shapes[r, c]: pen.width(line_heavy)
+            pen.forward(cell_draw_size)
+        pen.right(90)
+        pen.up()
+        pen.forward(cell_draw_size)
+        pen.left(90)
+        pen.backward(row_width + cell_draw_size)
+        pen.down()
+    # now columns
+    pen.up()
+    pen.setpos(start_coords)
+    pen.down()
+    pen.right(90)
+    for c in range(num_cols + 1):
+        for r in range(num_rows):
+            pen.width(line_light)
+            if c == 0:
+                pen.width(line_heavy)
+            elif c == num_cols:
+                pen.width(line_heavy)
+            else:
+                if grid_shapes[r, c - 1] != grid_shapes[r, c]: pen.width(line_heavy)
+            pen.forward(cell_draw_size)
+        pen.left(90)
+        pen.up()
+        pen.forward(cell_draw_size)
+        pen.right(90)
+        pen.backward(cell_draw_size * num_rows)
+        pen.down()
+    pen.up()
+def fill_cell(coord,colour="orange"):
+    c,r=coord
+    pen.setpos(start_coords[0]+r*cell_draw_size,start_coords[1]-c*cell_draw_size)
+    pen.fillcolor(colour)
+    pen.setheading(0) #east
+    pen.begin_fill()
+    for i in range(4):
+        pen.forward(cell_draw_size)
+        pen.right(90)
+    pen.end_fill()
+
+
+
+
+
+def random_colour():
+    colour="#"
+    for i in range(3):
+        colour=colour+hex(random.randint(128,240))[-2:]
+    return colour
+
+
+
+def translated_shapes(shape_in):
+    # work out rotations and reflections
+    translations=[(1,1),(1,-1),(-1,1),(-1,-1)]
+    shape_array=np.array(shape_in)
+    my_array=shape_array.copy()
+    my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy() #this is to switch columns (ror rotation)
+    shape_array_switched=my_array
+    shapes_out=[]
+
+    #my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy()
+    #we can do swap row and column which does some kind of ?rotate?
+
+    for tr in translations:
+        translated=(shape_array * tr).tolist()   #do the translation (reflection) first
+        #now rebase the shape - find top left cell and make that 0,0
+        translated.sort()
+        first_coord=translated[0]
+        translated=np.array(translated)-first_coord
+        translated=translated.tolist()
+        if translated not in shapes_out: shapes_out.append(translated)
+
+        translated = (shape_array_switched * tr).tolist()  # now do rotation translation
+        # now rebase the shape - find top left cell and make that 0,0
+        translated.sort()
+        first_coord = translated[0]
+        translated = np.array(translated) - first_coord
+        translated = translated.tolist()
+        if translated not in shapes_out: shapes_out.append(translated)
+
+
+        #res1tuple=[(i[0], i[1]) for i in res1]
+        # shapes_out.append(res1tuple)
+        #res2=(shape_array_switched * tr).tolist()
+        #res2tuple=[(i[0], i[1]) for i in res1]
+        #shapes_out.append(res2tuple)
+        ##shapes_out.append((shape_array * tr).tolist())
+        ##shapes_out.append((shape_array_switched * tr).tolist())
+    return shapes_out
 
 # OUTER LOOP -- run at least once
 while not found_one_yet:
@@ -45,88 +171,25 @@ while not found_one_yet:
     grid=np.zeros((num_rows, num_cols), dtype=int)
     grid_shapes=np.zeros((num_rows, num_cols), dtype=int)
 
-
-    screen = turtle.Screen()
-    screen.delay(0)
-    screen.tracer(0)
+    draw_grid()
     if display_build: screen.tracer(1)
 
-    pen = turtle.Turtle()
-    pen.speed(0)
 
 
-    def draw_grid():
-        global start_coords, r, c
-        start_coords = (-screen.window_width() / 2 + cell_draw_size, screen.window_height() / 2 - cell_draw_size)
-        row_width = cell_draw_size * (num_cols - 1)
-        line_light = 1
-        line_heavy = 3
-        pen.up()
-        # pen.setpos(-row_width, +row_width)
-        pen.setpos(start_coords)
-        pen.down()
-        # print(grid.shape)
-        # DRAW ROWS
-        for r in range(num_rows + 1):
-            for c in range(num_cols):
-                pen.width(line_light)
-                if r == 0:
-                    pen.width(line_heavy)
-                elif r == num_rows:
-                    pen.width(line_heavy)
-                else:
-                    if grid_shapes[r - 1, c] != grid_shapes[r, c]: pen.width(line_heavy)
-                pen.forward(cell_draw_size)
-            pen.right(90)
-            pen.up()
-            pen.forward(cell_draw_size)
-            pen.left(90)
-            pen.backward(row_width + cell_draw_size)
-            pen.down()
-        # now columns
-        pen.up()
-        pen.setpos(start_coords)
-        pen.down()
-        pen.right(90)
-        for c in range(num_cols + 1):
-            for r in range(num_rows):
-                pen.width(line_light)
-                if c == 0:
-                    pen.width(line_heavy)
-                elif c == num_cols:
-                    pen.width(line_heavy)
-                else:
-                    if grid_shapes[r, c - 1] != grid_shapes[r, c]: pen.width(line_heavy)
-                pen.forward(cell_draw_size)
-            pen.left(90)
-            pen.up()
-            pen.forward(cell_draw_size)
-            pen.right(90)
-            pen.backward(cell_draw_size * num_rows)
-            pen.down()
-        pen.up()
+    #reset grid background to white
+    for r in range(num_rows):
+        for c in range(num_cols):
+            fill_cell((r,c),"white")
 
 
-    draw_grid()
 
 
-    def random_colour():
-        colour="#"
-        for i in range(3):
-            colour=colour+hex(random.randint(128,240))[-2:]
-        return colour
+    bad_shape1=[[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]] #C Shape
+    bad_shape2=[[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]] #Big Corner
 
-    def fill_cell(coord,colour="orange"):
-        c,r=coord
-        pen.setpos(start_coords[0]+r*cell_draw_size,start_coords[1]-c*cell_draw_size)
-        pen.fillcolor(colour)
-        pen.setheading(0) #east
-        pen.begin_fill()
-        for i in range(4):
-            pen.forward(cell_draw_size)
-            pen.right(90)
-        pen.end_fill()
-
+    bad_shapes=translated_shapes(bad_shape1)
+    bad_shapes=bad_shapes + translated_shapes(bad_shape2)
+    #this is now a full list of all  permutations of bad shapes
 
 
     random_gen=True
@@ -160,6 +223,34 @@ while not found_one_yet:
                 if not(0 <= new_point[0] <= num_rows-1): valid=False
                 if not (0 <= new_point[1] <= num_cols-1): valid = False
                 if valid and grid_shapes[new_point]>0: valid=False
+
+                #add a routine to check for fatal shape here
+                if eliminate_fatal_shapes and  length==4:
+                    temp_shape=this_shape[:] #create new copy of this_shape
+                    temp_shape.append(new_point)
+                    #now check if this shape is one of the fatal shapes
+                    temp_shape.sort()
+                    first_coord=temp_shape[0]
+                    temp_shape_arr=np.array(temp_shape)
+                    temp_shape_arr=temp_shape_arr-(first_coord)
+                    temp_shape=temp_shape_arr.tolist()
+                    #this is to rebase shape
+                    #TODO - this code repeated a few times, make a function
+
+                    if temp_shape in bad_shapes:
+                        # the shape we are building is a fatal shape - stop here
+                        print ("fatal shape", temp_shape)
+                        valid=False
+                        fatal_eliminated+=1
+                        #screen.tracer(1)
+                        # for sh in  this_shape:
+                        #     fill_cell(sh,"red")
+                        # fill_cell(new_point,"red")
+                        # screen.tracer(0)
+                        # time.sleep(.5)
+
+
+
 
                 if valid:
                     this_point=new_point
@@ -231,44 +322,7 @@ while not found_one_yet:
             shape_coords[this_shape] = this_shape_coords
 
 
-    def translated_shapes(shape_in):
-        # work out rotations and reflections
-        translations=[(1,1),(1,-1),(-1,1),(-1,-1)]
-        shape_array=np.array(shape_in)
-        my_array=shape_array.copy()
-        my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy() #this is to switch columns (ror rotation)
-        shape_array_switched=my_array
-        shapes_out=[]
 
-        #my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy()
-        #we can do swap row and column which does some kind of ?rotate?
-
-        for tr in translations:
-            translated=(shape_array * tr).tolist()   #do the translation (reflection) first
-            #now rebase the shape - find top left cell and make that 0,0
-            translated.sort()
-            first_coord=translated[0]
-            translated=np.array(translated)-first_coord
-            translated=translated.tolist()
-            if translated not in shapes_out: shapes_out.append(translated)
-
-            translated = (shape_array_switched * tr).tolist()  # now do rotation translation
-            # now rebase the shape - find top left cell and make that 0,0
-            translated.sort()
-            first_coord = translated[0]
-            translated = np.array(translated) - first_coord
-            translated = translated.tolist()
-            if translated not in shapes_out: shapes_out.append(translated)
-
-
-            #res1tuple=[(i[0], i[1]) for i in res1]
-            # shapes_out.append(res1tuple)
-            #res2=(shape_array_switched * tr).tolist()
-            #res2tuple=[(i[0], i[1]) for i in res1]
-            #shapes_out.append(res2tuple)
-            ##shapes_out.append((shape_array * tr).tolist())
-            ##shapes_out.append((shape_array_switched * tr).tolist())
-        return shapes_out
 
 
     '''
@@ -614,7 +668,7 @@ while not found_one_yet:
     if not(outer_loop): found_one_yet=True  #stop if not meant to be outer looping
 
 ###### LOOP HAS FINISHED -- NOW ANALYSE RESULTS
-print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}")
+print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
 
 print("******SHAPES*****")
 
@@ -647,7 +701,7 @@ standard_shapes = [
 all_tot=0
 success_tot=0
 for sh in all_shape_count:
-    print (all_shape_count[sh],success_shape_count.get(sh),sh)
+    #print (all_shape_count[sh],success_shape_count.get(sh),sh)
     all_tot+=0 if all_shape_count[sh] is None else all_shape_count[sh]
     success_tot+=0 if success_shape_count.get(sh) is None else success_shape_count[sh]
 
@@ -687,7 +741,7 @@ for sh in all_shape_count:
 all_tot = 0
 success_tot = 0
 for sh in collated_list:
-    print (collated_list[sh],sh)
+    #print (collated_list[sh],sh)
     all_tot += collated_list[sh][0]
     success_tot += 0 if collated_list[sh][1] is None else collated_list[sh][1]
 
@@ -713,7 +767,7 @@ success_per_shape=[]
 success_rate_per_shape=[]
 count=0
 for shape in shapes:
-    print (count,tot_per_shape)
+    #print (count,tot_per_shape)
     count+=1
     shape_str=str(shape)
     scores=collated_list.get(shape_str)
@@ -744,6 +798,8 @@ pd.set_option('display.max_columns', None)
 df=pd.DataFrame(dfdata)
 print(df.drop(columns=["shape"]))
 
+print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
+#a duplicate
 
 
 
