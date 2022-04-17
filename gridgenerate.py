@@ -6,8 +6,9 @@ by Ashley,  April 2022
 """
 
 
-import turtle, time, random
+import turtle, time, random, pprint
 import numpy as np
+import pandas as pd
 
 
 verbose=False
@@ -16,6 +17,7 @@ outer_loop=True
 stop_on_success=False
 grids_to_try = 50  #if not stop on success how long to continue
 success_count=0
+timeouts_count=0
 
 all_shape_count={}
 success_shape_count={}
@@ -25,7 +27,7 @@ success_shape_count={}
 
 
 # SETUP
-num_cols = 7 #13
+num_cols = 6 #13
 num_rows = 5 #10
 cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
@@ -234,7 +236,7 @@ while not found_one_yet:
         translations=[(1,1),(1,-1),(-1,1),(-1,-1)]
         shape_array=np.array(shape_in)
         my_array=shape_array.copy()
-        my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy()
+        my_array[:, 0], my_array[:, 1] = my_array[:, 1], my_array[:, 0].copy() #this is to switch columns (ror rotation)
         shape_array_switched=my_array
         shapes_out=[]
 
@@ -242,15 +244,30 @@ while not found_one_yet:
         #we can do swap row and column which does some kind of ?rotate?
 
         for tr in translations:
-            #res1=(shape_array * tr).tolist()
+            translated=(shape_array * tr).tolist()   #do the translation (reflection) first
+            #now rebase the shape - find top left cell and make that 0,0
+            translated.sort()
+            first_coord=translated[0]
+            translated=np.array(translated)-first_coord
+            translated=translated.tolist()
+            if translated not in shapes_out: shapes_out.append(translated)
+
+            translated = (shape_array_switched * tr).tolist()  # now do rotation translation
+            # now rebase the shape - find top left cell and make that 0,0
+            translated.sort()
+            first_coord = translated[0]
+            translated = np.array(translated) - first_coord
+            translated = translated.tolist()
+            if translated not in shapes_out: shapes_out.append(translated)
+
+
             #res1tuple=[(i[0], i[1]) for i in res1]
             # shapes_out.append(res1tuple)
-            shapes_out.append((shape_array * tr).tolist())
-
             #res2=(shape_array_switched * tr).tolist()
             #res2tuple=[(i[0], i[1]) for i in res1]
             #shapes_out.append(res2tuple)
-            shapes_out.append((shape_array_switched * tr).tolist())
+            ##shapes_out.append((shape_array * tr).tolist())
+            ##shapes_out.append((shape_array_switched * tr).tolist())
         return shapes_out
 
 
@@ -517,13 +534,15 @@ while not found_one_yet:
         return(success)
 
 
-
+    ##########END OF ITERATE FUNCTION
 
 
 
     success=real_iterate()
 
-    if iterate_cell_count>=max_iters: success=False
+    if iterate_cell_count>=max_iters:
+        success=False
+        timeouts_count+=1
 
     if success:
         success_count+=1
@@ -584,6 +603,7 @@ while not found_one_yet:
 
 
 
+
     grids_tried+=1
     if success or grids_tried>0:
         found_one_yet=success   #True to stop
@@ -593,14 +613,47 @@ while not found_one_yet:
 
     if not(outer_loop): found_one_yet=True  #stop if not meant to be outer looping
 
-print ("**FINISHED** total grids tried",grids_tried, f"successes {success_count}")
+###### LOOP HAS FINISHED -- NOW ANALYSE RESULTS
+print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}")
 
 print("******SHAPES*****")
 
+standard_shapes = [
+"snail", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]],
+"gun", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]],
+"line-3", [[0, 0], [0, 1], [0, 2]],
+"cell-1",[[0, 0]],
+"snake", [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
+"line-2", [[0, 0], [0, 1]],
+"line-5",[[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
+"L", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
+"L-4", [[0, 0], [0, 1], [0, 2], [1, 0]],
+"S", [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
+"T",[[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]],
+"C-XX",[[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]],
+"corner-3",[[0, 0], [0, 1], [1, 0]],
+"T-4", [[0, 0], [0, 1], [0, 2], [1, 1]],
+"steps", [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]],
+"BigCorner-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]],
+"box-4",[[0, 0], [0, 1], [1, 0], [1, 1]],
+"snake-4", [[0, 0], [0, 1], [1, -1], [1, 0]],
+"line-4", [[0, 0], [0, 1], [0, 2], [0, 3]],
+"seahorse",[[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]],
+"cross",[[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
+]
+
+
+
+all_tot=0
+success_tot=0
 for sh in all_shape_count:
     print (all_shape_count[sh],success_shape_count.get(sh),sh)
+    all_tot+=0 if all_shape_count[sh] is None else all_shape_count[sh]
+    success_tot+=0 if success_shape_count.get(sh) is None else success_shape_count[sh]
+
 
 print ("total different shapes:", len(all_shape_count))
+print ("total all  shapes",all_tot,"total success",success_tot)
 
 print ("*****THAT WAS RAW SCORES***** ")
 print("****NOW FOR COLLATING.....****")
@@ -615,9 +668,13 @@ for sh in all_shape_count:
     if lowest_perm_string in collated_list:
         orig_score=collated_list[lowest_perm_string]
         new_score_0=orig_score[0]+all_shape_count[sh]
-        new_score_1=0
-        if orig_score[1]:
-            new_score=orig_score[1]
+
+        orig_score_1= 0 if orig_score[1] is None else orig_score[1]
+        # if not orig_score_1: orig_score_1=0
+        new_score_1= 0 if success_shape_count.get(sh) is None else success_shape_count[sh]
+        #if not new_score_1: new_score_1=0
+        new_score_1=orig_score_1+new_score_1
+        if new_score_1==0: new_score_1=None
         new_score=(new_score_0,new_score_1)
 
         #score_here=(score_here[0]+all_shape_count[sh],score_here[1]+success_shape_count.get(sh))
@@ -625,12 +682,67 @@ for sh in all_shape_count:
         new_score=(all_shape_count[sh],success_shape_count.get(sh))
     collated_list[lowest_perm_string]=new_score
 
-print(collated_list)
+#print(collated_list)
 
+all_tot = 0
+success_tot = 0
 for sh in collated_list:
     print (collated_list[sh],sh)
+    all_tot += collated_list[sh][0]
+    success_tot += 0 if collated_list[sh][1] is None else collated_list[sh][1]
 
 print ("length: ",len(collated_list))
+print ("total all  shapes",all_tot,"total success",success_tot)
+
+#create a dataframe of collated list
+
+names=[]
+shapes=[]
+for count,val in enumerate(standard_shapes):
+    if count%2==0:
+        names.append(val)
+    else:
+        shapes.append(val)
+
+#loop through standard shapes, create a column for name, shape, total , success, success %
+
+all_tot = 0
+success_tot = 0
+tot_per_shape=[]
+success_per_shape=[]
+success_rate_per_shape=[]
+count=0
+for shape in shapes:
+    print (count,tot_per_shape)
+    count+=1
+    shape_str=str(shape)
+    scores=collated_list.get(shape_str)
+    if scores:
+        tot_per_shape.append(scores[0])
+
+        if scores[1]:
+            success_per_shape.append(scores[1])
+            success_rate_per_shape.append(round(scores[1]/scores[0]*100))
+        else:
+            success_per_shape.append(0)
+            success_rate_per_shape.append(None)
+    else:
+        tot_per_shape.append(0)
+        success_per_shape.append(0)
+        success_rate_per_shape.append(0)
+
+
+print (tot_per_shape)
+print(success_per_shape)
+print(success_rate_per_shape)
+
+print ("******")
+dfdata={"name":names, "shape":shapes, "total":tot_per_shape, "success":success_per_shape,"success_rate":success_rate_per_shape}
+
+
+pd.set_option('display.max_columns', None)
+df=pd.DataFrame(dfdata)
+print(df.drop(columns=["shape"]))
 
 
 
@@ -638,5 +750,8 @@ print ("length: ",len(collated_list))
 
 
 
-turtle.done()
+
+
+
+#turtle.done()
 
