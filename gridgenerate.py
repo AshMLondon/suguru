@@ -17,10 +17,10 @@ num_rows = 6 #10
 
 eliminate_fatal_shapes=True
 verbose=False
-max_iters = 9000000
+max_iters = 5000000
 outer_loop=True
 stop_on_success=False
-grids_to_try = 400  #if not stop on success how long to continue
+grids_to_try = 5  #if not stop on success how long to continue
 success_count=0
 timeouts_count=0
 
@@ -37,6 +37,7 @@ horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
 row_width = cell_draw_size * (num_cols - 1)
 display_build=False #show shapes  building up slowly, or jump in one go
+start_time_all_grids=time.time()
 
 
 grids_tried=0
@@ -239,7 +240,7 @@ while not found_one_yet:
 
                     if temp_shape in bad_shapes:
                         # the shape we are building is a fatal shape - stop here
-                        print ("fatal shape", temp_shape)
+                        #print ("fatal shape", temp_shape)
                         valid=False
                         fatal_eliminated+=1
                         #screen.tracer(1)
@@ -623,6 +624,8 @@ while not found_one_yet:
     else:
         end_rate=0
 
+    grids_tried += 1
+
     if True: #verbose:
         print (f"tries: {grids_tried}  iterate counts",iterate_cell_count,iterate_number_count,"time", elapsed, "rate", end_rate)
 
@@ -654,11 +657,6 @@ while not found_one_yet:
 
     display_numbers()
 
-
-
-
-
-    grids_tried+=1
     if success or grids_tried>0:
         found_one_yet=success   #True to stop
 
@@ -666,6 +664,8 @@ while not found_one_yet:
         found_one_yet=(grids_tried>=grids_to_try)
 
     if not(outer_loop): found_one_yet=True  #stop if not meant to be outer looping
+
+
 
 ###### LOOP HAS FINISHED -- NOW ANALYSE RESULTS
 print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
@@ -810,6 +810,15 @@ df=pd.DataFrame(dfdata)
 print(df.drop(columns=["shape"]))
 
 print ("**FINISHED** total grids tried",grids_tried, f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
+
+full_elapsed = round(time.time() - start_time_all_grids,1)
+if full_elapsed > 0:
+    end_rate = round(full_elapsed/grids_tried,1)
+else:
+    end_rate = 0
+print (f"Total time taken {full_elapsed}    Time per grid  {end_rate}")
+
+
 #a duplicate
 if any_new_shapes:
     print ("*****NEW SHAPE FOUND&********")
