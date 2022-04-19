@@ -11,24 +11,21 @@ import numpy as np
 import pandas as pd
 
 
-num_cols = 8 #8 or 13
+num_cols = 9 #8 or 13
 num_rows = 7 #6 or 10
 
 
 eliminate_fatal_shapes=True
 verbose=False
 max_iters = 1e5 #1e99
-outer_loop=True
+outer_loop=False
 stop_on_success=False
-grids_to_try = 50  #if not stop on success how long to continue
+grids_to_try = 1  #if not stop on success how long to continue
 success_count=0
 timeouts_count=0
 
 all_shape_count={}
 success_shape_count={}
-
-# TODO: spot fatal shapes -- C shape and big right angle, and skip if they happen
-# TODO: change recursion to iteration and see if that speeds things up
 
 
 # SETUP
@@ -168,6 +165,15 @@ def translated_shapes(shape_in):
     return shapes_out
 
 
+def add_coords(coord1,coord2):
+    return  (coord1[0] + coord2[0], coord1[1] + coord2[1])
+
+def in_bounds(coord):
+    valid =  (0<=coord[0]<=num_rows-1) and (0<=coord[1]<=num_cols-1)
+    return valid
+
+
+
 #Keyboard Exception Handline -- idea = allow CTRL-C to exit long loop and still print results
 # actually doesn't quite work -- CtRL-C doesn't stop it now, but the stop button in PyCharm does
 try:
@@ -199,7 +205,7 @@ try:
         #this is now a full list of all  permutations of bad shapes
 
 
-        generator_type="random_walk"
+        generator_type="predetermined_list"  #"random_walk"
 
         if generator_type == "random_walk":
 
@@ -302,7 +308,70 @@ try:
         #***END OF RANDOM WALK GENERATE ROUTINE
 
         elif generator_type=="predetermined_list":
-            pass
+            #set start coordinates
+            start_point=(int(num_rows/2),int(num_cols/2))
+            move_coord = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+            go=1
+            shape_number=1
+
+            for loops in range(550):
+
+                #choose a direction to go
+                print (go)
+                if go==1:
+                    new_point=start_point
+                    go+=1
+
+                else:
+                    go+=1
+                    move=random.choice(move_coord)
+                    pot_new_point=add_coords(move,new_point)
+                    if in_bounds(pot_new_point):
+                        new_point=pot_new_point
+                    else:
+                        continue  #meaning restart the loop as out of bounds
+
+
+
+
+
+                #choose a starting shape
+                defined_shapes_to_choose={"cross": [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]}
+                shape_to_try=[[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
+
+
+                #try to add it in
+                valid=True
+                for coord in shape_to_try:
+                    adjusted_coord=add_coords(coord,new_point)
+                    print(adjusted_coord)
+                    if not in_bounds(adjusted_coord):
+                        valid=False
+                        break
+
+                    if grid_shapes[adjusted_coord] != 0: #already occupied
+                        valid=False
+                        break
+
+                #if valid, add in and update records
+                if valid:
+                    colour=random_colour()
+                    for coord in shape_to_try:
+                        adjusted_coord = add_coords(coord, new_point)
+                        grid_shapes[adjusted_coord]=shape_number
+                        fill_cell(adjusted_coord,colour)
+                    print ("valid shape")
+                    shape_number+=1
+
+                #if it fails loop back to try a different shape
+                else:
+                    print ("oh dear")
+
+
+
+
+            print (grid_shapes)
+
 
 
         #*** END OF SECOND GENERATRE ROUTINE
@@ -337,9 +406,7 @@ try:
                 this_shape_coords.append((r, c))
                 shape_coords[this_shape] = this_shape_coords
 
-
-
-
+        turtle.done()
 
         '''
         # CHECK SHAPES -- want to understand what sort of shapes there are and if any are 'fatal' (eg C, big angle)
