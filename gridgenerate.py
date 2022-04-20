@@ -310,11 +310,30 @@ try:
         elif generator_type=="predetermined_list":
             #set start coordinates
             start_point=(int(num_rows/2),int(num_cols/2))
-            move_coord = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+            move_coord = [(0, 1),(1,0),(0,-1),(-1, 0), (0, 0)]
             go=1
             shape_number=1
 
-            for loops in range(550):
+            ## try spiral approach
+            #fill_cell(start_point,"grey")
+            new_point=start_point[:]
+            step = 0
+            for i in range(4):
+                for move in move_coord[0:4]:
+                    if move[0] == 0:
+                        step += 1
+                    for steps in range(step):
+                        fill_cell(new_point,"grey")
+                        time.sleep(.1)
+
+                        new_point=add_coords(new_point,move)
+
+
+
+
+
+
+            for loops in range(0):  #was 500 -- stopping to try spiral
 
                 #choose a direction to go
                 print (go)
