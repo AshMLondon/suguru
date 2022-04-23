@@ -156,8 +156,8 @@ def translated_shapes(shape_in):
     return shapes_out
 
 
-def add_coords(coord1, coord2):
-    return (coord1[0] + coord2[0], coord1[1] + coord2[1])
+def add_coords(coord1, coord2,offset=(0,0)):
+    return (coord1[0] + coord2[0] + offset[0], coord1[1] + coord2[1] + offset[1])
 
 
 def in_bounds(coord):
@@ -300,7 +300,7 @@ try:
             def next_free_space_spiral(start_coord):
                 #this function spirals outwards from starting coord (r,c) until it finds an empty cell
 
-                if grid_shapes[start_coord]!=0:
+                if grid_shapes[start_coord]==0:
                     return start_coord
                     #if starting point already is blank
 
@@ -318,7 +318,7 @@ try:
                             new_point = add_coords(new_point, move)
                             if in_bounds(new_point):
                                 any_in_bounds = True
-                                if grid_shapes[new_point]!=0:
+                                if grid_shapes[new_point]==0:
                                     return new_point
 
                     if not any_in_bounds:
@@ -347,48 +347,64 @@ try:
                     break #spiral reached outside so stop
             '''
 
-            for loops in range(2):  # was 500 -- stopping to try spiral
+            for loops in range(5):  # was 500 -- stopping to try spiral
+                #TODO probably spiralling around the wrong thing - spiral from centre?
 
                 # choose a direction to go
                 print(go)
                 if go == 1:
                     new_point = start_point
+                    #print ("first =",new_point)
                     go += 1
 
                 else:
                     go += 1
                     #choose where to move next
-                    move = random.choice(move_coord)
-                    pot_new_point = add_coords(move, new_point)
-                    if in_bounds(pot_new_point):
-                        new_point = pot_new_point
-                    else:
-                        continue  # meaning restart the loop as out of bounds
+                    random_move=False
+                    if random_move:
+                        move = random.choice(move_coord)
+                        pot_new_point = add_coords(move, new_point)
+                        if in_bounds(pot_new_point):
+                            new_point = pot_new_point
+                        else:
+                            continue  # meaning restart the loop as out of bounds
+                    else: #try spiral move
+                        spiral_point=next_free_space_spiral(new_point)
+                        print (f"spiral point {spiral_point} -- original in {new_point}")
+                        if spiral_point:
+                            new_point=spiral_point
+                        else:
+                            print ("***PROBLEM -- SPIRAL RAN OUT OF POINTS***")
+                            raise ValueError("spiral ran out")
 
                 # choose a starting shape
                 defined_shapes_to_choose = {"cross": [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]}
                 shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
 
                 # TODO: next we need to try putting the shape in using each cell in the shape to go on the starting point (not just the first)
+                for home_coord in shape_to_try:
+                    home_coord_offset=(-home_coord[0],-home_coord[1])
 
-                # try to add it in
-                valid = True
-                for coord in shape_to_try:
-                    adjusted_coord = add_coords(coord, new_point)
-                    print(adjusted_coord)
-                    if not in_bounds(adjusted_coord):
-                        valid = False
-                        break
+                    # try to add it in
+                    valid = True
+                    for coord in shape_to_try:
+                        adjusted_coord = add_coords(coord, new_point, home_coord_offset)
+                        print(adjusted_coord)
+                        if not in_bounds(adjusted_coord):
+                            valid = False
+                            break
 
-                    if grid_shapes[adjusted_coord] != 0:  # already occupied
-                        valid = False
-                        break
+                        if grid_shapes[adjusted_coord] != 0:  # already occupied
+                            valid = False
+                            break
+
+                    if valid: break
 
                 # if valid, add in and update records
                 if valid:
                     colour = random_colour()
                     for coord in shape_to_try:
-                        adjusted_coord = add_coords(coord, new_point)
+                        adjusted_coord = add_coords(coord, new_point,home_coord_offset)
                         grid_shapes[adjusted_coord] = shape_number
                         fill_cell(adjusted_coord, colour)
                     print("valid shape")
@@ -396,7 +412,7 @@ try:
 
                 # if it fails loop back to try a different shape
                 else:
-                    print("oh dear")
+                    print(f"not found valid shape possibility, coord={new_point}")
 
             print(grid_shapes)
 
