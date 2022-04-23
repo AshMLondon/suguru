@@ -32,6 +32,33 @@ row_width = cell_draw_size * (num_cols - 1)
 display_build = True  # False #show shapes  building up slowly, or jump in one go
 start_time_all_grids = time.time()
 
+
+standard_shapes = [
+    "cross", [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]],
+    "snail", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]],
+    "gun", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]],
+    "snake", [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
+    "L", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
+    "S", [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
+    "T", [[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]],
+    "steps", [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]],
+    "seahorse", [[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]],
+    "line-5", [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
+    "T-4", [[0, 0], [0, 1], [0, 2], [1, 1]],
+    "L-4", [[0, 0], [0, 1], [0, 2], [1, 0]],
+    "box-4", [[0, 0], [0, 1], [1, 0], [1, 1]],
+    "snake-4", [[0, 0], [0, 1], [1, -1], [1, 0]],
+    "line-4", [[0, 0], [0, 1], [0, 2], [0, 3]],
+    "corner-3", [[0, 0], [0, 1], [1, 0]],
+    "line-3", [[0, 0], [0, 1], [0, 2]],
+    "line-2", [[0, 0], [0, 1]],
+    "cell-1", [[0, 0]],
+    "C-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]],
+    "BigCorner-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]],
+]
+
+
+
 grids_tried = 0
 found_one_yet = False
 max_iters_used = 0
@@ -294,6 +321,25 @@ try:
             # set start coordinates
             start_point = (int(num_rows / 2), int(num_cols / 2))
             move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
+
+
+            #defined_shapes_to_choose = \
+                # {"cross": [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]],
+                #  "snake": [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
+                #  "L": [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
+                #  "gun": [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]]
+                #  }
+            defined_shapes_to_choose=[] #let's try a list of lists, at least that's got a defined order
+            for count, val in enumerate(standard_shapes):
+                if count % 2 == 0:
+                    shape=[val]
+                else:
+                    shape.append(val)
+                    defined_shapes_to_choose.append(shape)
+            print (defined_shapes_to_choose)
+            #todo - why isn't this printing?
+            #TODO - plus now need to stop when finished and also add some randomness
+
             go = 1
             shape_number = 1
 
@@ -347,7 +393,7 @@ try:
                     break #spiral reached outside so stop
             '''
 
-            for loops in range(5):  # was 500 -- stopping to try spiral
+            for loops in range(15):  # was 500 -- stopping to try spiral
                 #TODO probably spiralling around the wrong thing - spiral from centre?
 
                 # choose a direction to go
@@ -370,6 +416,7 @@ try:
                             continue  # meaning restart the loop as out of bounds
                     else: #try spiral move
                         spiral_point=next_free_space_spiral(new_point)
+                        #spiral_point = next_free_space_spiral(start_point)
                         print (f"spiral point {spiral_point} -- original in {new_point}")
                         if spiral_point:
                             new_point=spiral_point
@@ -377,28 +424,43 @@ try:
                             print ("***PROBLEM -- SPIRAL RAN OUT OF POINTS***")
                             raise ValueError("spiral ran out")
 
-                # choose a starting shape
-                defined_shapes_to_choose = {"cross": [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]}
-                shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
 
-                # TODO: next we need to try putting the shape in using each cell in the shape to go on the starting point (not just the first)
-                for home_coord in shape_to_try:
-                    home_coord_offset=(-home_coord[0],-home_coord[1])
 
-                    # try to add it in
-                    valid = True
-                    for coord in shape_to_try:
-                        adjusted_coord = add_coords(coord, new_point, home_coord_offset)
-                        print(adjusted_coord)
-                        if not in_bounds(adjusted_coord):
-                            valid = False
-                            break
+                for shape_name,base_shape in defined_shapes_to_choose:
+                    #shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
+                    print ("*****SHAPE:",shape_name)
 
-                        if grid_shapes[adjusted_coord] != 0:  # already occupied
-                            valid = False
-                            break
+                    #TODO: we're going to need all the translations of the shape to try
+                    shape_permutations = translated_shapes(base_shape)
 
-                    if valid: break
+                    for shape_to_try in shape_permutations:
+                        print(shape_to_try)
+
+                        # TODO -- add in the full set of shapes
+
+
+
+                        for home_coord in shape_to_try:
+                            # now alter which cell of the shape is the one to line up  on the starting cell
+                            home_coord_offset=(-home_coord[0],-home_coord[1])
+                            print("home coord offset =",home_coord_offset)
+
+                            # try to add it in
+                            valid = True
+                            for coord in shape_to_try:
+                                adjusted_coord = add_coords(coord, new_point, home_coord_offset)
+                                print(adjusted_coord)
+                                if not in_bounds(adjusted_coord):
+                                    valid = False
+                                    break
+
+                                if grid_shapes[adjusted_coord] != 0:  # already occupied
+                                    valid = False
+                                    break
+
+                            if valid: break
+                        if valid: break
+                    if valid:break
 
                 # if valid, add in and update records
                 if valid:
@@ -417,7 +479,7 @@ try:
             print(grid_shapes)
 
 
-        # *** END OF SECOND GENERATRE ROUTINE
+        # *** END OF SECOND GENERATOR ROUTINE
 
         else:  # simply give a shape
 
@@ -795,29 +857,7 @@ print("**FINISHED** total grids tried", grids_tried,
 
 print("******SHAPES*****")
 
-standard_shapes = [
-    "snail", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]],
-    "gun", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]],
-    "line-3", [[0, 0], [0, 1], [0, 2]],
-    "cell-1", [[0, 0]],
-    "snake", [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
-    "line-2", [[0, 0], [0, 1]],
-    "line-5", [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
-    "L", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
-    "L-4", [[0, 0], [0, 1], [0, 2], [1, 0]],
-    "S", [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
-    "T", [[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]],
-    "C-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]],
-    "corner-3", [[0, 0], [0, 1], [1, 0]],
-    "T-4", [[0, 0], [0, 1], [0, 2], [1, 1]],
-    "steps", [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]],
-    "BigCorner-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]],
-    "box-4", [[0, 0], [0, 1], [1, 0], [1, 1]],
-    "snake-4", [[0, 0], [0, 1], [1, -1], [1, 0]],
-    "line-4", [[0, 0], [0, 1], [0, 2], [0, 3]],
-    "seahorse", [[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]],
-    "cross", [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
-]
+
 names = []
 shapes = []
 for count, val in enumerate(standard_shapes):
@@ -923,6 +963,8 @@ dfdata = {"name": names, "shape": shapes, "total": tot_per_shape, "success": suc
 
 pd.set_option('display.max_columns', None)
 df = pd.DataFrame(dfdata)
+df.insert(2, 'length', df["shape"].str.len())
+#df["length"]=df["shape"].str.len()
 print(df.drop(columns=["shape"]))
 
 print("**FINISHED** total grids tried", grids_tried,
