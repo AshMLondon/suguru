@@ -10,11 +10,11 @@ import numpy as np
 import pandas as pd
 
 num_cols = 9  # 8 or 13
-num_rows = 7  # 6 or 10
+num_rows =7  # 6 or 10
 
 eliminate_fatal_shapes = True
 verbose = False
-max_iters = 1e5  # 1e99
+max_iters = 1e7  # 1e99
 outer_loop = False
 stop_on_success = False
 grids_to_try = 1  # if not stop on success how long to continue
@@ -336,7 +336,12 @@ try:
                 else:
                     shape.append(val)
                     defined_shapes_to_choose.append(shape)
+            print (defined_shapes_to_choose.pop())
+            print(defined_shapes_to_choose.pop())
+            #pop last two are fatal
+            #TODO - deal with those differently
             print (defined_shapes_to_choose)
+            defined_shapes_to_choose_shuffled=defined_shapes_to_choose[:]
             #todo - why isn't this printing?
             #TODO - plus now need to stop when finished and also add some randomness
 
@@ -370,34 +375,13 @@ try:
                     if not any_in_bounds:
                         return None  # spiral reached outside so stop
 
-            '''
-            ## try spiral approach
-            # fill_cell(start_point,"grey")
-            new_point = start_point[:]
-            step_size = 0
-            fill_cell(new_point, "grey")
-            for i in range(max(num_cols,num_rows)):
-                any_in_bounds = False
-                for move in move_coord[0:4]:
-                    if move[0] == 0:
-                        step_size += 1
-                    for steps in range(step_size):
+            finished=False
+            for loops in range(50):  # was 500 -- stopping to try spiral
 
-                        new_point = add_coords(new_point, move)
-                        if in_bounds(new_point):
-                            any_in_bounds = True
-                            fill_cell(new_point, "grey")
-                            time.sleep(.01)
-
-                if not any_in_bounds:
-                    break #spiral reached outside so stop
-            '''
-
-            for loops in range(15):  # was 500 -- stopping to try spiral
-                #TODO probably spiralling around the wrong thing - spiral from centre?
 
                 # choose a direction to go
                 print(go)
+                time.sleep(.02)
                 if go == 1:
                     new_point = start_point
                     #print ("first =",new_point)
@@ -421,60 +405,67 @@ try:
                         if spiral_point:
                             new_point=spiral_point
                         else:
-                            print ("***PROBLEM -- SPIRAL RAN OUT OF POINTS***")
-                            raise ValueError("spiral ran out")
+                            #spiral has run out -- hopefully because we've filled the whole thing!
+                            print ("*filled the grid*")
+                            finished=True
+                            break
+
+                if not finished:
+                    #random choice whether to shuffle or use preferred order
+                    #TODO -- when randomly shuffling the shape order, first shuffle the 5 length shapes they should still be preferred before the others
+                    if random.random()<1:
+                        defined_shapes_to_choose_shuffled=defined_shapes_to_choose[:]
+                    else:
+                        random.shuffle(defined_shapes_to_choose_shuffled)
+                    for shape_name,base_shape in defined_shapes_to_choose_shuffled:
+                        #shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
+                        print ("*****SHAPE:",shape_name)
+
+                        #TODO: we're going to need all the translations of the shape to try
+                        shape_permutations = translated_shapes(base_shape)
+
+                        for shape_to_try in shape_permutations:
+                            print(shape_to_try)
+
+                            # TODO -- add in the full set of shapes
 
 
 
-                for shape_name,base_shape in defined_shapes_to_choose:
-                    #shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
-                    print ("*****SHAPE:",shape_name)
+                            for home_coord in shape_to_try:
+                                # now alter which cell of the shape is the one to line up  on the starting cell
+                                home_coord_offset=(-home_coord[0],-home_coord[1])
+                                print("home coord offset =",home_coord_offset)
 
-                    #TODO: we're going to need all the translations of the shape to try
-                    shape_permutations = translated_shapes(base_shape)
+                                # try to add it in
+                                valid = True
+                                for coord in shape_to_try:
+                                    adjusted_coord = add_coords(coord, new_point, home_coord_offset)
+                                    print(adjusted_coord)
+                                    if not in_bounds(adjusted_coord):
+                                        valid = False
+                                        break
 
-                    for shape_to_try in shape_permutations:
-                        print(shape_to_try)
+                                    if grid_shapes[adjusted_coord] != 0:  # already occupied
+                                        valid = False
+                                        break
 
-                        # TODO -- add in the full set of shapes
-
-
-
-                        for home_coord in shape_to_try:
-                            # now alter which cell of the shape is the one to line up  on the starting cell
-                            home_coord_offset=(-home_coord[0],-home_coord[1])
-                            print("home coord offset =",home_coord_offset)
-
-                            # try to add it in
-                            valid = True
-                            for coord in shape_to_try:
-                                adjusted_coord = add_coords(coord, new_point, home_coord_offset)
-                                print(adjusted_coord)
-                                if not in_bounds(adjusted_coord):
-                                    valid = False
-                                    break
-
-                                if grid_shapes[adjusted_coord] != 0:  # already occupied
-                                    valid = False
-                                    break
-
+                                if valid: break
                             if valid: break
-                        if valid: break
-                    if valid:break
+                        if valid:break
 
-                # if valid, add in and update records
-                if valid:
-                    colour = random_colour()
-                    for coord in shape_to_try:
-                        adjusted_coord = add_coords(coord, new_point,home_coord_offset)
-                        grid_shapes[adjusted_coord] = shape_number
-                        fill_cell(adjusted_coord, colour)
-                    print("valid shape")
-                    shape_number += 1
+                    # if valid, add in and update records
+                    if valid:
+                        colour = random_colour()
+                        for coord in shape_to_try:
+                            adjusted_coord = add_coords(coord, new_point,home_coord_offset)
+                            grid_shapes[adjusted_coord] = shape_number
+                            fill_cell(adjusted_coord, colour)
+                        print("valid shape")
+                        shape_number += 1
 
-                # if it fails loop back to try a different shape
-                else:
-                    print(f"not found valid shape possibility, coord={new_point}")
+                    # if it fails loop back to try a different shape
+                    else:
+                        print(f"not found valid shape possibility, coord={new_point}")
 
             print(grid_shapes)
 
@@ -508,7 +499,7 @@ try:
                 this_shape_coords.append((r, c))
                 shape_coords[this_shape] = this_shape_coords
 
-        turtle.done()
+        #turtle.done()
 
         '''
         # CHECK SHAPES -- want to understand what sort of shapes there are and if any are 'fatal' (eg C, big angle)
@@ -984,4 +975,4 @@ if any_new_shapes:
 else:
     print("(no new shapes)")
 
-# turtle.done()
+turtle.done()
