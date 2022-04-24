@@ -15,9 +15,9 @@ num_rows =7  # 6 or 10
 eliminate_fatal_shapes = True
 verbose = False
 max_iters = 1e7  # 1e99
-outer_loop = False
+outer_loop = True
 stop_on_success = False
-grids_to_try = 1  # if not stop on success how long to continue
+grids_to_try = 100  # if not stop on success how long to continue
 success_count = 0
 timeouts_count = 0
 
@@ -29,20 +29,20 @@ cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
 row_width = cell_draw_size * (num_cols - 1)
-display_build = True  # False #show shapes  building up slowly, or jump in one go
+display_build = False #True  # False #show shapes  building up slowly, or jump in one go
 start_time_all_grids = time.time()
 
 
 standard_shapes = [
     "cross", [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]],
-    "snail", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]],
-    "gun", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]],
     "snake", [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
+    "gun", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]],
     "L", [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
-    "S", [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
     "T", [[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]],
-    "steps", [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]],
     "seahorse", [[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]],
+    "snail", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]],
+     "S", [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
+    "steps", [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]],
     "line-5", [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]],
     "T-4", [[0, 0], [0, 1], [0, 2], [1, 1]],
     "L-4", [[0, 0], [0, 1], [0, 2], [1, 0]],
@@ -140,7 +140,7 @@ def fill_cell(coord, colour="orange"):
 def random_colour():
     colour = "#"
     for i in range(3):
-        colour = colour + hex(random.randint(128, 240))[-2:]
+        colour = colour + hex(random.randint(155, 246))[-2:]
     return colour
 
 
@@ -196,7 +196,7 @@ def in_bounds(coord):
 # actually doesn't quite work -- CtRL-C doesn't stop it now, but the stop button in PyCharm does
 try:
 
-    # OUTER LOOP -- run at least once
+    # OUTER LOOP - generate a grid - run at least once
     while not found_one_yet:
 
         grid = np.zeros((num_rows, num_cols), dtype=int)
@@ -217,7 +217,7 @@ try:
         bad_shapes = bad_shapes + translated_shapes(bad_shape2)
         # this is now a full list of all  permutations of bad shapes
 
-        generator_type = "predetermined_list"  # "random_walk"
+        generator_type = "predetermined_list"  #"random_walk"  #"predetermined_list"  #"random_walk"  #
 
         if generator_type == "random_walk":
 
@@ -295,8 +295,8 @@ try:
                 for cell in this_shape:
                     grid_shapes[cell] = shape_number
                 # print (grid_shapes)
-                print()
-                if display_build:  time.sleep(.4)
+                #print()
+                if display_build:  time.sleep(.02)
 
                 if this_shape == []:
                     # print("bit stuck")
@@ -319,7 +319,10 @@ try:
 
         elif generator_type == "predetermined_list":
             # set start coordinates
-            start_point = (int(num_rows / 2), int(num_cols / 2))
+            #start_point = (int(num_rows / 2), int(num_cols / 2))
+
+            start_point = (random.randint(0,num_rows-1),random.randint(0,num_cols-1))
+
             move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
 
 
@@ -336,11 +339,13 @@ try:
                 else:
                     shape.append(val)
                     defined_shapes_to_choose.append(shape)
+
             print (defined_shapes_to_choose.pop())
             print(defined_shapes_to_choose.pop())
             #pop last two are fatal
-            #TODO - deal with those differently
-            print (defined_shapes_to_choose)
+            #TODO - deal with those differently  --- need to pop even if not print
+            #TODO - better have 6 separate lists  5,4,3,2,1 shapes and then fatal shape - and then combine as needed, or randomise parts as needed
+            #print (defined_shapes_to_choose)
             defined_shapes_to_choose_shuffled=defined_shapes_to_choose[:]
             #todo - why isn't this printing?
             #TODO - plus now need to stop when finished and also add some randomness
@@ -380,8 +385,8 @@ try:
 
 
                 # choose a direction to go
-                print(go)
-                time.sleep(.02)
+                if verbose: print(go)
+                if display_build: time.sleep(.02)
                 if go == 1:
                     new_point = start_point
                     #print ("first =",new_point)
@@ -401,12 +406,12 @@ try:
                     else: #try spiral move
                         spiral_point=next_free_space_spiral(new_point)
                         #spiral_point = next_free_space_spiral(start_point)
-                        print (f"spiral point {spiral_point} -- original in {new_point}")
+                        if verbose: print (f"spiral point {spiral_point} -- original in {new_point}")
                         if spiral_point:
                             new_point=spiral_point
                         else:
                             #spiral has run out -- hopefully because we've filled the whole thing!
-                            print ("*filled the grid*")
+                            if verbose: print ("*filled the grid*")
                             finished=True
                             break
 
@@ -419,13 +424,13 @@ try:
                         random.shuffle(defined_shapes_to_choose_shuffled)
                     for shape_name,base_shape in defined_shapes_to_choose_shuffled:
                         #shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
-                        print ("*****SHAPE:",shape_name)
+                        if verbose: print ("*****SHAPE:",shape_name)
 
                         #TODO: we're going to need all the translations of the shape to try
                         shape_permutations = translated_shapes(base_shape)
 
                         for shape_to_try in shape_permutations:
-                            print(shape_to_try)
+                            if verbose: print(shape_to_try)
 
                             # TODO -- add in the full set of shapes
 
@@ -434,13 +439,13 @@ try:
                             for home_coord in shape_to_try:
                                 # now alter which cell of the shape is the one to line up  on the starting cell
                                 home_coord_offset=(-home_coord[0],-home_coord[1])
-                                print("home coord offset =",home_coord_offset)
+                                if verbose: print("home coord offset =",home_coord_offset)
 
                                 # try to add it in
                                 valid = True
                                 for coord in shape_to_try:
                                     adjusted_coord = add_coords(coord, new_point, home_coord_offset)
-                                    print(adjusted_coord)
+                                    if verbose: print(adjusted_coord)
                                     if not in_bounds(adjusted_coord):
                                         valid = False
                                         break
@@ -460,14 +465,14 @@ try:
                             adjusted_coord = add_coords(coord, new_point,home_coord_offset)
                             grid_shapes[adjusted_coord] = shape_number
                             fill_cell(adjusted_coord, colour)
-                        print("valid shape")
+                        if verbose: print("valid shape")
                         shape_number += 1
 
                     # if it fails loop back to try a different shape
                     else:
-                        print(f"not found valid shape possibility, coord={new_point}")
+                        if verbose: print(f"not found valid shape possibility, coord={new_point}")
 
-            print(grid_shapes)
+
 
 
         # *** END OF SECOND GENERATOR ROUTINE
@@ -501,28 +506,7 @@ try:
 
         #turtle.done()
 
-        '''
-        # CHECK SHAPES -- want to understand what sort of shapes there are and if any are 'fatal' (eg C, big angle)
-        bad_shapes_single = [[(0, 0), (0, 1), (1, 0), (2, 0), (2, 1)]]  # start with a c shape
-        print (bad_shapes_single)
-        bad_shapes = translated_shapes(bad_shapes_single)
-        print(bad_shapes)
-        for shape_no,shape in shape_coords.items():
-            #I intended to sort shape coords, but they start off in right order b/c of way generated
-            first_coord=shape[0]
-            #rebased_shape = [(x[0]-first_coord[0],x[1]-first_coord[1]) for x in shape] #my first list comprehension!!
-            rebased_shape_array=np.array(shape)-first_coord
-            rebased_shape=rebased_shape_array.tolist()
-            print (shape_no,shape,rebased_shape)
-    
-            if False: #rebased_shape in bad_shapes:
-                print ("***BAD SHAPE**")
-                bad_shape_here=True
-                for cell in shape:
-                    fill_cell(cell,"red")
-    
-        #if shape is bad then do something?
-        '''
+
 
         # keep count on which shapes are used - useful when looping multiple grids
         for shape_no, shape in shape_coords.items():
@@ -958,9 +942,13 @@ df.insert(2, 'length', df["shape"].str.len())
 #df["length"]=df["shape"].str.len()
 print(df.drop(columns=["shape"]))
 
-print("**FINISHED** total grids tried", grids_tried,
-      f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
-print("Python impl: ", platform.python_implementation())
+fails=grids_tried-success_count-timeouts_count
+
+print("**FINISHED** SUMMARY***")
+print(f"grid size = {num_rows},{num_cols}")
+print("total grids tried", grids_tried,
+      f"successes: {success_count}  fails: {fails} timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
+#print("Python impl: ", platform.python_implementation())
 
 full_elapsed = round(time.time() - start_time_all_grids, 1)
 if full_elapsed > 0:
