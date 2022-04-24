@@ -14,7 +14,7 @@ num_rows =7  # 6 or 10
 
 eliminate_fatal_shapes = True
 verbose = False
-max_iters = 1e7  # 1e99
+max_iters = 1e6  # 1e99
 outer_loop = True
 stop_on_success = False
 grids_to_try = 100  # if not stop on success how long to continue
@@ -321,7 +321,11 @@ try:
             # set start coordinates
             #start_point = (int(num_rows / 2), int(num_cols / 2))
 
-            start_point = (random.randint(0,num_rows-1),random.randint(0,num_cols-1))
+            #start_point = (random.randint(0,num_rows-1),random.randint(0,num_cols-1))
+            #normal random choice
+
+            start_point = (random.randint(num_rows//3-1,num_rows*2//3-1),random.randint(num_cols//3-1,num_cols*2//3-1))
+            #biased to middle third
 
             move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
 
