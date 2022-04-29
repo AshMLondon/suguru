@@ -14,10 +14,10 @@ num_rows =7  # 6 or 10
 
 eliminate_fatal_shapes = True
 verbose = False
-max_iters = 1e6  # 1e99
+max_iters = 3e5  # 1e99
 outer_loop = True
 stop_on_success = False
-grids_to_try = 100  # if not stop on success how long to continue
+grids_to_try = 50  # if not stop on success how long to continue
 success_count = 0
 timeouts_count = 0
 
@@ -31,6 +31,31 @@ vert_offset = cell_draw_size * .9
 row_width = cell_draw_size * (num_cols - 1)
 display_build = False #True  # False #show shapes  building up slowly, or jump in one go
 start_time_all_grids = time.time()
+
+
+standard_shapes_tuple=[
+    ('cross', [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]),
+    ('snake', [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]]),
+    ('gun', [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]]),
+    ('L', [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]]),
+    ('T', [[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]]),
+    ('seahorse', [[0, 0], [0, 1], [1, -1], [1, 0], [2, 0]]),
+    ('snail', [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1]]),
+    ('S', [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]]),
+    ('steps', [[0, 0], [0, 1], [1, -1], [1, 0], [2, -1]]),
+    ('line-5', [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]]),
+    ('T-4', [[0, 0], [0, 1], [0, 2], [1, 1]]),
+    ('L-4', [[0, 0], [0, 1], [0, 2], [1, 0]]),
+    ('box-4', [[0, 0], [0, 1], [1, 0], [1, 1]]),
+    ('snake-4', [[0, 0], [0, 1], [1, -1], [1, 0]]),
+    ('line-4', [[0, 0], [0, 1], [0, 2], [0, 3]]),
+    ('corner-3', [[0, 0], [0, 1], [1, 0]]),
+    ('line-3', [[0, 0], [0, 1], [0, 2]]),
+    ('line-2', [[0, 0], [0, 1]]),
+    ('cell-1', [[0, 0]]),
+    ('C-XX', [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]]),
+    ('BigCorner-XX', [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]])
+    ]
 
 
 standard_shapes = [
@@ -337,12 +362,17 @@ try:
                 #  "gun": [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]]
                 #  }
             defined_shapes_to_choose=[] #let's try a list of lists, at least that's got a defined order
+
             for count, val in enumerate(standard_shapes):
                 if count % 2 == 0:
                     shape=[val]
+
                 else:
                     shape.append(val)
                     defined_shapes_to_choose.append(shape)
+
+
+
 
             print (defined_shapes_to_choose.pop())
             print(defined_shapes_to_choose.pop())
