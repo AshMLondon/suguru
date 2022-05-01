@@ -5,7 +5,7 @@ Suguru Puzzle Grid Generator -- trial
 by Ashley,  April 2022
 """
 
-import turtle, time, random, pprint, platform
+import time, random    #, pprint, platform
 import numpy as np
 import pandas as pd
 
@@ -273,6 +273,8 @@ def create_blank_grids():
 
 if __name__ == '__main__':
     ##adding this so hopefully we can reuse procedures in other files
+
+    import turtle
 
 
     #global variables used by generator functions
