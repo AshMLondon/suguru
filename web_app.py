@@ -1,7 +1,7 @@
 ## Web App
 ## Let's try to get this stuff working on the web
 
-from flask import Flask
+from flask import Flask, render_template
 import gridgenerate as gridgen
 from time import time
 import pprint
@@ -61,7 +61,8 @@ def generate_some_grids():
 
     print ("elapsed = ",elapsed)
 
-    return html_out
+    #return html_out
+    return render_template("suguru_grid.html", grid_shapes=gridgen.grid_shapes,elapsed=elapsed)
 
 @ app.route("/test")
 def index():

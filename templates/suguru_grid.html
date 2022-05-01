@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <style>
+     table, tr, td {
+  border: 1px solid;
+  border-collapse: collapse;
+}
+td {min-width: 22px;
+height:22px;
+border-width: thin medium thin thin;
+text-align: center;
+}
+
+    </style>
+</head>
+<body>
+Hello!
+<table>
+{%for row in grid_shapes%}
+    <tr>
+    {%for cell in row%}
+        <td>
+            {{cell}}
+        </td>
+    {%endfor%}
+
+{%endfor%}
+</tr>
+
+
+</table>
+
+</body>
+</html>
