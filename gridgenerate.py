@@ -9,14 +9,14 @@ import turtle, time, random, pprint, platform
 import numpy as np
 import pandas as pd
 
-num_cols = 13  #9  # 8 or 13
-num_rows = 10   #7  # 6 or 10
+num_cols = 8  #9  # 8 or 13
+num_rows = 6   #7  # 6 or 10
 
 eliminate_fatal_shapes = True
 verbose = False
-max_iters = 1e8  # 1e99
+max_iters = 1e6  # 1e99
 outer_loop = True
-stop_on_success = True #False
+stop_on_success = False #True #False
 grids_to_try = 10  # if not stop on success how long to continue
 success_count = 0
 timeouts_count = 0
