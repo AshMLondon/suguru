@@ -6,6 +6,8 @@ by Ashley,  April 2022
 """
 
 
+
+
 def get_neighbours(r, c):
     neighbours = []
     for nb_r in range(r - 1, r + 2):
@@ -164,9 +166,10 @@ pen.left(90)
 pen.up()
 pen.setpos(start_coords)
 horiz_offset = cell_draw_size / 2
+vert_offset = cell_draw_size * .9
 pen.forward(horiz_offset)  # centre horizontally
 pen.right(90)
-vert_offset = cell_draw_size * .9
+
 pen.forward(vert_offset)  # vertical adjustment
 pen.left(90)
 for r in range(num_rows):
