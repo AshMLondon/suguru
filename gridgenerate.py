@@ -9,15 +9,15 @@ import turtle, time, random, pprint, platform
 import numpy as np
 import pandas as pd
 
-num_cols = 9  # 8 or 13
-num_rows =7  # 6 or 10
+num_cols = 13  #9  # 8 or 13
+num_rows = 10   #7  # 6 or 10
 
 eliminate_fatal_shapes = True
 verbose = False
-max_iters = 3e5  # 1e99
+max_iters = 1e8  # 1e99
 outer_loop = True
-stop_on_success = False
-grids_to_try = 50  # if not stop on success how long to continue
+stop_on_success = True #False
+grids_to_try = 10  # if not stop on success how long to continue
 success_count = 0
 timeouts_count = 0
 
@@ -29,8 +29,10 @@ cell_draw_size = 40
 horiz_offset = cell_draw_size / 2
 vert_offset = cell_draw_size * .9
 row_width = cell_draw_size * (num_cols - 1)
-display_build = False #True  # False #show shapes  building up slowly, or jump in one go
+display_build = False #False #True  # False #show shapes  building up slowly, or jump in one go
 start_time_all_grids = time.time()
+time_grid_gen=0
+time_grid_solve=0
 
 
 standard_shapes_tuple=[
@@ -217,7 +219,7 @@ def in_bounds(coord):
     return valid
 
 
-# Keyboard Exception Handline -- idea = allow CTRL-C to exit long loop and still print results
+# Keyboard Exception Handling -- idea = allow CTRL-C to exit long loop and still print results
 # actually doesn't quite work -- CtRL-C doesn't stop it now, but the stop button in PyCharm does
 try:
 
@@ -374,8 +376,8 @@ try:
 
 
 
-            print (defined_shapes_to_choose.pop())
-            print(defined_shapes_to_choose.pop())
+            p1=defined_shapes_to_choose.pop()
+            p2=defined_shapes_to_choose.pop()
             #pop last two are fatal
             #TODO - deal with those differently  --- need to pop even if not print
             #TODO - better have 6 separate lists  5,4,3,2,1 shapes and then fatal shape - and then combine as needed, or randomise parts as needed
@@ -645,6 +647,7 @@ try:
                         if verbose:
                             if iterate_cell_count % 10000 == 0:
                                 elapsed = time.time() - start_time
+
                                 if not elapsed:
                                     rate = 0
                                 else:
@@ -679,6 +682,7 @@ try:
 
 
         def real_iterate():
+            #really iterate , not just recursive
             global iterate_number_count, iterate_cell_count, max_iters
             success = False
             numbers_to_try_stack = {}
@@ -807,6 +811,8 @@ try:
                     success_shape_count[rebased_shape] = 1
 
         elapsed = time.time() - start_time
+        time_grid_solve += elapsed
+
         if elapsed > 0:
             end_rate = iterate_cell_count / elapsed
         else:
@@ -860,6 +866,7 @@ except KeyboardInterrupt:
     print("************KEYBOARD INTERRUPT!!************")
     # but still carry on
 
+################################################
 ###### LOOP HAS FINISHED -- NOW ANALYSE RESULTS
 print("**FINISHED** total grids tried", grids_tried,
       f"successes: {success_count}  timeouts:{timeouts_count}   fatal shapes blocked:{fatal_eliminated}")
@@ -986,10 +993,13 @@ print("total grids tried", grids_tried,
 
 full_elapsed = round(time.time() - start_time_all_grids, 1)
 if full_elapsed > 0:
-    end_rate = round(full_elapsed / grids_tried, 1)
+    end_rate = round(full_elapsed / grids_tried, 2)
 else:
     end_rate = 0
 print(f"Total time taken {full_elapsed}    Time per grid  {end_rate}")
+time_grid_gen=full_elapsed-time_grid_solve
+gen_rate=time_grid_gen / grids_tried
+print(f"total grid gen {time_grid_gen}  and rate {gen_rate}")
 
 # a duplicate
 if any_new_shapes:
