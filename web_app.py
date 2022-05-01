@@ -4,6 +4,7 @@
 from flask import Flask
 import gridgenerate as gridgen
 from time import time
+import pprint
 
 
 ## Start Flask Running
@@ -15,12 +16,6 @@ print ("flask should be running...")
 
 @app.route("/")
 @app.route("/index")
-def index():
-    print("index called")
-    return "index was called"
-
-
-@app.route("/gen")
 def generate_some_grids():
     #now let's try generating a grid
     #global initial variables
@@ -40,11 +35,38 @@ def generate_some_grids():
 
     elapsed= time()-start_time
 
+
+
+
+
+
     print(gridgen.grid_shapes)
+
+
+
+    html_out = pprint.pformat(gridgen.grid_shapes)
+
+    html_out += "<br/>"
+
+    html_out += f"elapsed = {elapsed}"
+
+    html_out += gridgen.array2string(gridgen.grid_shapes)
+
+    html_out += "<br/>"
+    html_out += "<br/><pre>"
+    grid_as_list = gridgen.grid_shapes.tolist()
+    for line in grid_as_list:
+        html_out += str(line)+"<br/>"
+    html_out += "</pre>"
+
     print ("elapsed = ",elapsed)
 
-    return("finished")
+    return html_out
 
+@ app.route("/test")
+def index():
+    print("test called")
+    return "test was called"
 
 
 

@@ -270,6 +270,9 @@ def create_blank_grids():
     grid = np.zeros((num_rows, num_cols), dtype=int)
     grid_shapes = np.zeros((num_rows, num_cols), dtype=int)
 
+def array2string(array_in):
+    return np.array2string(array_in)
+
 
 if __name__ == '__main__':
     ##adding this so hopefully we can reuse procedures in other files
