@@ -15,6 +15,12 @@ print ("flask should be running...")
 
 @app.route("/")
 @app.route("/index")
+def index():
+    print("index called")
+    return "index was called"
+
+
+@app.route("/gen")
 def generate_some_grids():
     #now let's try generating a grid
     #global initial variables
