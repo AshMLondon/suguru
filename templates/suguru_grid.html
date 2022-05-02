@@ -5,12 +5,14 @@
     <title>Title</title>
 
     <style>
+    #maincontainer {width:500px ; margin: 10 auto;}
+
      table, tr, td {
   border: 1px solid;
   border-collapse: collapse;
 }
-td {min-width: 22px;
-height:22px;
+td {min-width: 26px;
+height:26px;
 border-width: thin medium thin thin;
 text-align: center;
 }
@@ -18,18 +20,31 @@ text-align: center;
     </style>
 </head>
 <body>
+<div id=""maincontainer>
 Hello!
 <table>
-{%for row in grid_shapes%}
+{%set num_rows,num_cols = grid_shapes.shape%}
+{%for r in range(num_rows)%}
     <tr>
-    {%for cell in row%}
-        <td>
-            {{cell}}
-        </td>
-    {%endfor%}
-
-{%endfor%}
-</tr>
+    {%for c in range(num_cols)%}
+            {%set move_coord = [(-1, 0), (0,1), (1, 0), (0, -1)]%}
+            <td style="border-width:
+            {%for move in move_coord%}
+                {%if (0<=r+move[0]<=num_rows) and (0<=c+move[1]<=num_cols)%}
+                    {%if grid_shapes[r+move[0],c+move[1]]==grid_shapes[r,c]%}
+                        thin
+                    {%else%}
+                        medium
+                    {%endif%}
+                {%else%}
+                    medium
+                {%endif%}
+            {% endfor %}
+            ;">{{grid_shapes[r,c]}}
+            </td>
+    {% endfor %}
+    </tr>
+{% endfor %}
 
 
 </table>
@@ -38,6 +53,6 @@ Hello!
 <br>
 time elapsed = {{elapsed}}
 
-
+</div>
 </body>
 </html>

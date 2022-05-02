@@ -29,7 +29,7 @@ def generate_some_grids():
 
     start_time=time()
 
-    for loop in range(50):
+    for loop in range(5):
         gridgen.create_blank_grids()
         gridgen.gen_predet_shapes(turtle_fill=False)
 
@@ -60,6 +60,21 @@ def generate_some_grids():
     html_out += "</pre>"
 
     print ("elapsed = ",elapsed)
+
+    '''
+    ## function to work out edges
+    for r in range(gridgen.num_rows):
+        for c in range(gridgen.num_cols):
+            this_shape = gridgen.grid_shapes[r,c]
+            move_coord = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            edge_thickness=[]
+            for move in move_coord:
+                if gridgen.grid_shapes(r+move(0),c+move(1))==this_shape:
+                    edge_thickness.append("thin")
+                else:
+                    edge_thickness.append("medium")
+    '''
+
 
     #return html_out
     return render_template("suguru_grid.html", grid_shapes=gridgen.grid_shapes,elapsed=elapsed)
