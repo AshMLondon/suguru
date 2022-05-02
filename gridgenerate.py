@@ -274,6 +274,31 @@ def array2string(array_in):
     return np.array2string(array_in)
 
 
+def get_shape_coords():
+    global shape_coords, r, c, this_shape
+    shape_coords = {}
+    for r in range(num_rows):
+        for c in range(num_cols):
+            this_shape = grid_shapes[r, c]
+            this_shape_coords = shape_coords.get(this_shape)
+            if not this_shape_coords:
+                this_shape_coords = []
+            this_shape_coords.append((r, c))
+            shape_coords[this_shape] = this_shape_coords
+
+    return shape_coords
+
+
+def get_neighbours(r, c):
+    neighbours = []
+    for nb_r in range(r - 1, r + 2):
+        if 0 <= nb_r <= num_rows - 1:
+            for nb_c in range(c - 1, c + 2):
+                if 0 <= nb_c <= num_cols - 1:
+                    neighbours.append((nb_r, nb_c))
+    neighbours.remove((r, c))  # don't include itself
+    return neighbours
+
 if __name__ == '__main__':
     ##adding this so hopefully we can reuse procedures in other files
 
@@ -550,15 +575,7 @@ if __name__ == '__main__':
             if verbose: print(grid_shapes)
             draw_grid()
 
-            shape_coords = {}
-            for r in range(num_rows):
-                for c in range(num_cols):
-                    this_shape = grid_shapes[r, c]
-                    this_shape_coords = shape_coords.get(this_shape)
-                    if not this_shape_coords:
-                        this_shape_coords = []
-                    this_shape_coords.append((r, c))
-                    shape_coords[this_shape] = this_shape_coords
+            shape_coords=get_shape_coords()
 
             #turtle.done()
 
@@ -586,15 +603,7 @@ if __name__ == '__main__':
                 pen.write(num, align="center", font=("Comic Sans MS", 18, "normal"))
 
 
-            def get_neighbours(r, c):
-                neighbours = []
-                for nb_r in range(r - 1, r + 2):
-                    if 0 <= nb_r <= num_rows - 1:
-                        for nb_c in range(c - 1, c + 2):
-                            if 0 <= nb_c <= num_cols - 1:
-                                neighbours.append((nb_r, nb_c))
-                neighbours.remove((r, c))  # don't include itself
-                return neighbours
+
 
 
             iterate_cell_count = 0

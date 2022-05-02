@@ -35,31 +35,32 @@ def generate_some_grids():
 
     elapsed= time()-start_time
 
+    #now let's work out unique colours for the grid
+    shape_colours={}
 
-
-
+    shape_coords = gridgen.get_shape_coords()
+    for shape_number, shape in shape_coords.items():
+        neighbouring_shapes = set()  # empty set
+        colours_neighbouring=set()
+        for cell in shape:
+            neighbours = gridgen.get_neighbours(*cell)
+            for nb in neighbours:
+                neighbouring_shapes.add(gridgen.grid_shapes[nb])  #will keep unique list
+        for n_shape in neighbouring_shapes:
+            colours_neighbouring.add(shape_colours.get(n_shape))
+        colour_to_try=1
+        done=False
+        while not done:
+            if colour_to_try in colours_neighbouring:
+                colour_to_try+=1
+            else:
+                done=True
+        shape_colours[shape_number]=colour_to_try
+    print (shape_colours)
+    print (max(shape_colours.values()))
 
 
     print(gridgen.grid_shapes)
-
-
-
-    html_out = pprint.pformat(gridgen.grid_shapes)
-
-    html_out += "<br/>"
-
-    html_out += f"elapsed = {elapsed}"
-
-    html_out += gridgen.array2string(gridgen.grid_shapes)
-
-    html_out += "<br/>"
-    html_out += "<br/><pre>"
-    grid_as_list = gridgen.grid_shapes.tolist()
-    for line in grid_as_list:
-        html_out += str(line)+"<br/>"
-    html_out += "</pre>"
-
-    print ("elapsed = ",elapsed)
 
     '''
     ## function to work out edges
@@ -77,7 +78,7 @@ def generate_some_grids():
 
 
     #return html_out
-    return render_template("suguru_grid.html", grid_shapes=gridgen.grid_shapes,elapsed=elapsed)
+    return render_template("suguru_grid.html", grid_shapes=gridgen.grid_shapes,elapsed=elapsed, shape_colours=shape_colours)
 
 @ app.route("/test")
 def index():

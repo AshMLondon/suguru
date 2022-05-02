@@ -20,6 +20,9 @@ text-align: center;
     </style>
 </head>
 <body>
+
+{%set colours=["orange","blue","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
+
 <div id=""maincontainer>
 Hello!
 <table>
@@ -28,7 +31,7 @@ Hello!
     <tr>
     {%for c in range(num_cols)%}
             {%set move_coord = [(-1, 0), (0,1), (1, 0), (0, -1)]%}
-            <td style="border-width:
+            <td style="background-color: {{colours[shape_colours[grid_shapes[r,c]]]}}; border-width:
             {%for move in move_coord%}
                 {%if (0<=r+move[0]<=num_rows) and (0<=c+move[1]<=num_cols)%}
                     {%if grid_shapes[r+move[0],c+move[1]]==grid_shapes[r,c]%}
