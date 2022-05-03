@@ -1,5 +1,6 @@
 ## Web App
 ## Let's try to get this stuff working on the web
+# git push heroku web_version:main
 
 from flask import Flask, render_template
 import gridgenerate as gridgen
@@ -10,6 +11,9 @@ import pprint
 ## Start Flask Running
 ## note to work properly the app.run is at the end after the definitions..
 app = Flask(__name__)
+global colours_neighbouring
+colours_neighbouring=[]
+app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighbouring=colours_neighbouring)
 print ("flask should be running...")
 
 
