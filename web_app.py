@@ -115,6 +115,7 @@ def db_test():
     mycollection = mydb['CollectionWordleTest']
     doc_count = mycollection.count_documents({})
     print(doc_count)
+    return(connection_string+str(doc_count))
 
 
 
