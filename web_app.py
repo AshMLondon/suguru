@@ -1,7 +1,7 @@
 ## Web App
 ## Let's try to get this stuff working on the web
 # git push heroku web_version:main
-
+import os
 from flask import Flask, render_template
 import gridgenerate as gridgen
 from time import time
@@ -88,6 +88,33 @@ def generate_some_grids():
 def index():
     print("test called")
     return "test was called"
+
+
+
+@ app.route("/config")
+def config_test():
+    EV=os.environ.get("SUGURU_USER")
+    if not EV: EV="didn't find"
+    print(EV)
+    print(os.environ.get("OneDrive"))
+    print(os.environ.get("BLAH"))
+    return EV
+
+@ app.route("/dbtest")
+def db_test():
+    from pymongo import MongoClient
+    import os
+
+    # conn_str = "mongodb+srv://<username>:<password>@<cluster-address>/test?retryWrites=true&w=majority"
+
+    connection_string = os.environ.get("SUGURU_CONN_STR")
+    print(connection_string)
+    myclient = MongoClient(connection_string)
+    # db = client.test
+    mydb = myclient['testDB']
+    mycollection = mydb['CollectionWordleTest']
+    doc_count = mycollection.count_documents({})
+    print(doc_count)
 
 
 

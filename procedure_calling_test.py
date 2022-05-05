@@ -27,7 +27,7 @@ def main():
 
     start_time=time()
 
-    for loop in range(50):
+    for loop in range(1):
         gridgen.create_blank_grids()
         gridgen.gen_predet_shapes(turtle_fill=False)
 
@@ -35,6 +35,13 @@ def main():
 
     print(gridgen.grid_shapes)
     print ("elapsed = ",elapsed)
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main()
