@@ -21,7 +21,7 @@ app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighb
 print ("flask should be running...")
 
 ##Initialise DB
-my_db_collection = db.connect_suguru_db()
+result = db.connect_suguru_db()
 
 ## END OF SETUP -- NOW INDIVIDUAL PAGES
 
@@ -121,15 +121,18 @@ def config_test():
 
 @ app.route("/dbtest")
 def db_test():
-    from pymongo import MongoClient
-    import os
 
 
-
-    my_db_collection = db.connect_suguru_db()
+    my_db_collection = db.my_db_collection
     doc_count = my_db_collection.count_documents({})
     print(doc_count)
+
+    result=db.upsert({"name":"test"},{"entry":"hello!"})
+    print (result)
+
+
     return(str(doc_count))
+
 
 
 
