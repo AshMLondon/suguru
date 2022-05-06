@@ -79,7 +79,9 @@ def generate_some_grids():
 
     #now let's try adding grid to database
     doc_name="last_shape"
-    #to_upsert=
+    to_upsert={"grid_shapes":gridgen.grid_shapes.tolist()}
+    #note convert array to list before saving to MongoDB - slight hassle but fair enough
+    db.upsert({"name":doc_name},to_upsert)
 
 
 
