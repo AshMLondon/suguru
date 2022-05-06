@@ -1,11 +1,13 @@
 ## Web App
 ## Let's try to get this stuff working on the web
 # git push heroku web_version:main
-import os
+
 from flask import Flask, render_template
 import gridgenerate as gridgen
+import database_functions as db
 from time import time
 import pprint
+
 
 
 ## Start Flask Running
@@ -13,8 +15,16 @@ import pprint
 app = Flask(__name__)
 global colours_neighbouring
 colours_neighbouring=[]
+
+#set globals for jinja templates so I can eg use functions within them
 app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighbouring=colours_neighbouring)
 print ("flask should be running...")
+
+##Initialise DB
+my_db_collection = db.connect_suguru_db()
+
+## END OF SETUP -- NOW INDIVIDUAL PAGES
+
 
 
 
@@ -66,6 +76,15 @@ def generate_some_grids():
 
     print(gridgen.grid_shapes)
 
+
+    #now let's try adding grid to database
+    doc_name="last_shape"
+    #to_upsert=
+
+
+
+
+
     '''
     ## function to work out edges
     for r in range(gridgen.num_rows):
@@ -105,17 +124,12 @@ def db_test():
     from pymongo import MongoClient
     import os
 
-    # conn_str = "mongodb+srv://<username>:<password>@<cluster-address>/test?retryWrites=true&w=majority"
 
-    connection_string = os.environ.get("SUGURU_CONN_STR")
-    print(connection_string)
-    myclient = MongoClient(connection_string)
-    # db = client.test
-    mydb = myclient['testDB']
-    mycollection = mydb['CollectionWordleTest']
-    doc_count = mycollection.count_documents({})
+
+    my_db_collection = db.connect_suguru_db()
+    doc_count = my_db_collection.count_documents({})
     print(doc_count)
-    return(connection_string+str(doc_count))
+    return(str(doc_count))
 
 
 
