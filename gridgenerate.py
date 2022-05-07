@@ -299,6 +299,127 @@ def get_neighbours(r, c):
     neighbours.remove((r, c))  # don't include itself
     return neighbours
 
+
+def real_iterate():
+    # really iterate , not just recursive
+    global iterate_number_count, iterate_cell_count, max_iters
+    success = False
+    numbers_to_try_stack = {}
+    cell_iter_no = 0
+    keep_iterating = True
+    next_step = "starting"
+    while keep_iterating:
+        # let's start loop off
+        # print("next step",next_step)
+        if next_step == "ascend":
+            if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
+                cell_iter_no += 1
+                iterate_cell_count += 1
+                if verbose:
+                    if iterate_cell_count % 50000 == 0:
+                        elapsed = time.time() - start_time
+                        if not elapsed:
+                            rate = 0
+                        else:
+                            rate = iterate_cell_count / elapsed
+                        print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,
+                              "time", elapsed, "rate", rate)
+            else:
+                # got as far as end cell - complete
+                print("*complete*")
+                success = True
+                break
+
+        if next_step == "descend":
+            grid[rc] = 0
+            cell_iter_no -= 1
+            if cell_iter_no < 0:
+                next_step = "FAIL"
+                break
+
+        rc = row_col[cell_iter_no]
+        # print ("rc",rc)
+
+        if next_step == "ascend" or next_step == "starting":
+            max_nums, shapes = iter_shapes[cell_iter_no]
+            nums_avail = list(range(1, max_nums + 1))
+            for shape in shapes:
+                this_num = grid[shape]
+                if this_num in nums_avail:
+                    nums_avail.remove(this_num)
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+
+        elif next_step == "descend":
+            max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
+            nums_avail = numbers_to_try_stack[cell_iter_no]
+
+        # now we actually iterate do we?
+        # print ("where we're at",cell_iter_no,nums_avail)
+
+        if not nums_avail:
+            # run out of numbers for cell, retreat
+            next_step = "descend"
+        else:
+            num_to_try = nums_avail.pop(0)
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+
+            grid[rc] = num_to_try
+            iterate_number_count += 1
+            # now let's check if valid
+            valid = True
+            neighbours = iter_nonshape_neighbours[cell_iter_no]
+            for nb in neighbours:
+                if grid[nb] == num_to_try:
+                    valid = False
+                    break
+
+            # if ok - ascend a level in iteration
+            if valid:
+                if cell_iter_no < num_rows * num_cols - 1 and iterate_cell_count < max_iters:
+                    iterate_cell_count += 1
+                    next_step = "ascend"
+                    if iterate_cell_count % 10000 == 0:
+                        elapsed = time.time() - start_time
+                        if not elapsed:
+                            rate = 0
+                        else:
+                            rate = iterate_cell_count / elapsed
+                        print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
+                              "rate", rate)
+
+            else:
+                # doesn't work try next number
+                next_step = "inc_number"
+                grid[rc] = 0
+
+        # this is end of while loop I think
+
+    # print(grid)
+    # END OF ITERATION
+    return (success)
+
+
+def create_iterate_lookups():
+    global iter_shapes, iter_nonshape_neighbours, row_col
+    # to save time with a large recursive function, use some additional data lookups
+    iter_shapes = {}  # not working yet!!
+    iter_nonshape_neighbours = {}
+    row_col = {}
+    for i in range(num_cols * num_rows):
+        r = i // num_cols
+        c = i % num_cols
+        row_col[i] = (r, c)
+        shape_no = grid_shapes[r, c]
+        shapes = shape_coords[shape_no]
+        max_nums = len(shapes)
+        iter_shapes[i] = (max_nums, shapes)
+        neighbours = get_neighbours(r, c)
+        for nb in neighbours:
+            if nb in shapes:
+                neighbours.remove(nb)
+        iter_nonshape_neighbours[i] = neighbours
+
+
 if __name__ == '__main__':
     ##adding this so hopefully we can reuse procedures in other files
 
@@ -306,8 +427,8 @@ if __name__ == '__main__':
 
 
     #global variables used by generator functions
-    num_cols = 8  #9  # 8 or 13
-    num_rows = 6   #7  # 6 or 10
+    num_cols = 9  #9  # 8 or 13
+    num_rows = 7   #7  # 6 or 10
 
 
     eliminate_fatal_shapes = True
@@ -604,33 +725,6 @@ if __name__ == '__main__':
 
 
 
-
-
-            iterate_cell_count = 0
-            iterate_number_count = 0
-            start_time = time.time()
-
-            # to save time with a large recursive function, use some additional data lookups
-
-            iter_shapes = {}  # not working yet!!
-            iter_nonshape_neighbours = {}
-            row_col = {}
-            for i in range(num_cols * num_rows):
-                r = i // num_cols
-                c = i % num_cols
-                row_col[i] = (r, c)
-                shape_no = grid_shapes[r, c]
-                shapes = shape_coords[shape_no]
-                max_nums = len(shapes)
-                iter_shapes[i] = (max_nums, shapes)
-                neighbours = get_neighbours(r, c)
-                for nb in neighbours:
-                    if nb in shapes:
-                        neighbours.remove(nb)
-
-                iter_nonshape_neighbours[i] = neighbours
-
-
             def recurse(cell_iter_no):
                 global iterate_number_count, iterate_cell_count, max_iters
                 success = False
@@ -710,106 +804,18 @@ if __name__ == '__main__':
                 return (success)
 
 
-            def real_iterate():
-                #really iterate , not just recursive
-                global iterate_number_count, iterate_cell_count, max_iters
-                success = False
-                numbers_to_try_stack = {}
-                cell_iter_no = 0
-                keep_iterating = True
-                next_step = "starting"
-                while keep_iterating:
-                    # let's start loop off
-                    # print("next step",next_step)
-                    if next_step == "ascend":
-                        if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
-                            cell_iter_no += 1
-                            iterate_cell_count += 1
-                            if verbose:
-                                if iterate_cell_count % 50000 == 0:
-                                    elapsed = time.time() - start_time
-                                    if not elapsed:
-                                        rate = 0
-                                    else:
-                                        rate = iterate_cell_count / elapsed
-                                    print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,
-                                          "time", elapsed, "rate", rate)
-                        else:
-                            # got as far as end cell - complete
-                            print("*complete*")
-                            success = True
-                            break
-
-                    if next_step == "descend":
-                        grid[rc] = 0
-                        cell_iter_no -= 1
-                        if cell_iter_no < 0:
-                            next_step = "FAIL"
-                            break
-
-                    rc = row_col[cell_iter_no]
-                    # print ("rc",rc)
-
-                    if next_step == "ascend" or next_step == "starting":
-                        max_nums, shapes = iter_shapes[cell_iter_no]
-                        nums_avail = list(range(1, max_nums + 1))
-                        for shape in shapes:
-                            this_num = grid[shape]
-                            if this_num in nums_avail:
-                                nums_avail.remove(this_num)
-                        numbers_to_try_stack[cell_iter_no] = nums_avail
-
-                    elif next_step == "descend":
-                        max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
-                        nums_avail = numbers_to_try_stack[cell_iter_no]
-
-                    # now we actually iterate do we?
-                    # print ("where we're at",cell_iter_no,nums_avail)
-
-                    if not nums_avail:
-                        # run out of numbers for cell, retreat
-                        next_step = "descend"
-                    else:
-                        num_to_try = nums_avail.pop(0)
-                        numbers_to_try_stack[cell_iter_no] = nums_avail
-
-                        grid[rc] = num_to_try
-                        iterate_number_count += 1
-                        # now let's check if valid
-                        valid = True
-                        neighbours = iter_nonshape_neighbours[cell_iter_no]
-                        for nb in neighbours:
-                            if grid[nb] == num_to_try:
-                                valid = False
-                                break
-
-                        # if ok - ascend a level in iteration
-                        if valid:
-                            if cell_iter_no < num_rows * num_cols - 1 and iterate_cell_count < max_iters:
-                                iterate_cell_count += 1
-                                next_step = "ascend"
-                                if iterate_cell_count % 10000 == 0:
-                                    elapsed = time.time() - start_time
-                                    if not elapsed:
-                                        rate = 0
-                                    else:
-                                        rate = iterate_cell_count / elapsed
-                                    print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
-                                          "rate", rate)
-
-                        else:
-                            # doesn't work try next number
-                            next_step = "inc_number"
-                            grid[rc] = 0
-
-                    # this is end of while loop I think
-
-                # print(grid)
-                # END OF ITERATION
-                return (success)
 
 
-            ##########END OF ITERATE FUNCTION
+
+
+
+
+            #Iteration Prep
+            iterate_cell_count = 0
+            iterate_number_count = 0
+            start_time = time.time()
+
+            create_iterate_lookups()
 
             success = real_iterate()
 

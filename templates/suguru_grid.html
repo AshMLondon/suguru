@@ -51,7 +51,12 @@ Hello!
                     medium
                 {%endif%}
             {% endfor %}
-            ;">{{grid_shapes[r,c]}}
+            ;">
+                {%if grid is defined%}
+                    {{grid[r,c]}}
+                {%else%}
+                    {{grid_shapes[r,c]}}
+                {%endif%}
             </td>
     {% endfor %}
     </tr>
