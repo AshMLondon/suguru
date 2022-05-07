@@ -86,7 +86,64 @@ def generate_some_grids():
 
 
 @app.route("/solvetest")
-def gen_and_solve_some_grids():
+def gen_and_solve_multi_grids():
+    #generate and solve multiple grids and see how we do
+    #global initial variables
+    gridgen.num_rows=8
+    gridgen.num_cols=9
+    gridgen.verbose=False
+    gridgen.display_build=False
+
+    start_time=time()
+    num_success=0
+    num_timeout=0
+    number_to_loop=5
+    for loop in range(number_to_loop):
+        gridgen.create_blank_grids()
+        gridgen.gen_predet_shapes(turtle_fill=False)
+
+        gridgen.shape_coords = gridgen.get_shape_coords()
+
+        gridgen.max_iters = 1e6
+        gridgen.iterate_cell_count = 0
+        gridgen.iterate_number_count = 0
+
+        gridgen.create_iterate_lookups()
+        success = gridgen.real_iterate()
+        #TODO refactor so success is yes/no/timeout
+        if gridgen.iterate_cell_count>=gridgen.max_iters:
+            num_timeout+=1
+        else:
+            if success:
+                num_success+=1
+
+
+
+
+    elapsed= round(time()-start_time,1)
+    print (elapsed)
+
+    #shape_colours = get_unique_colours()
+    #print(gridgen.grid_shapes)
+    num_fails=number_to_loop-num_success-num_timeout
+    html_out=f"Grids tried: {number_to_loop}, Successes: {num_success}, Fails: {num_fails}, Timeout: {num_timeout}, Total time: {elapsed} "
+    return html_out
+
+    '''
+    #now let's try adding grid to database
+    doc_name="last_solving_shape"
+    to_upsert={"grid_shapes":gridgen.grid_shapes.tolist(),"grid_values":gridgen.grid.tolist()}
+    #note convert array to list before saving to MongoDB - slight hassle but fair enough
+    db.upsert({"name":doc_name},to_upsert)
+
+    #return html_out
+    return render_template("suguru_grid.html", grid=gridgen.grid, grid_shapes=gridgen.grid_shapes, elapsed=elapsed, shape_colours=shape_colours)
+    '''
+
+
+
+@app.route("/singlesolve")
+def gen_and_solve_one_grids():
     #now let's try generating a grid an solving it too
     #global initial variables
     gridgen.num_rows=8
