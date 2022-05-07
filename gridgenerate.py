@@ -312,7 +312,7 @@ if __name__ == '__main__':
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 1e5  # 1e99
+    max_iters = 1e6  # 1e99
     outer_loop = True
     stop_on_success = False #True #False
     grids_to_try = 10  # if not stop on success how long to continue

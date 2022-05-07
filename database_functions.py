@@ -46,6 +46,8 @@ def upsert(doc_ID,upsert_dict, timestamp=True):
         timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")  #was originally (%H:%M:%S.%f) for microseconds
         upsert_dict["timestamp"]=timestampStr
 
+    #TODO: timestamp seems to be 1 hour out if on heroku because based in Europe
+
     upsert_command={"$set":upsert_dict}
 
     result = my_db_collection.update_one(doc_ID,upsert_command, upsert=True)
