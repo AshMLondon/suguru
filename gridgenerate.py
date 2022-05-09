@@ -300,9 +300,11 @@ def get_neighbours(r, c):
     return neighbours
 
 
-def real_iterate():
+def real_iterate(timeout=None):
     # really iterate , not just recursive
     global iterate_number_count, iterate_cell_count, max_iters
+    if timeout:
+        timeout_time=time.time()+timeout
     success = False
     numbers_to_try_stack = {}
     cell_iter_no = 0
@@ -375,7 +377,11 @@ def real_iterate():
 
             # if ok - ascend a level in iteration
             if valid:
-                if cell_iter_no < num_rows * num_cols - 1 and iterate_cell_count < max_iters:
+                if timeout:
+                    ok_continue=(time.time()<timeout_time)
+                else:
+                    ok_continue=(iterate_cell_count<max_iters)
+                if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
                     iterate_cell_count += 1
                     next_step = "ascend"
                     if iterate_cell_count % 10000 == 0:

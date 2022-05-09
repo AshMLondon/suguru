@@ -18,7 +18,10 @@ def findandsolvegrids():
     num_timeout=0
     number_to_loop=7 #11 is good for getting up to 10x12
 
-    gridgen.max_iters = 6.6e7
+    gridgen.max_iters = 6.6e6
+    timeout=5 #seconds
+
+
     print(f"TIMEOUT DEFAULT: {gridgen.max_iters}")
 
     for loop in range(number_to_loop):
@@ -42,7 +45,7 @@ def findandsolvegrids():
         gridgen.iterate_number_count = 0
         gridgen.create_iterate_lookups()
 
-        success = gridgen.real_iterate()
+        success = gridgen.real_iterate(timeout=timeout)
         #TODO refactor so success is yes/no/timeout
 
         if gridgen.iterate_cell_count>=gridgen.max_iters:
