@@ -1,5 +1,6 @@
 import gridgenerate as gridgen
 import database_functions as db
+import numpy as np
 from time import time
 
 
@@ -15,12 +16,20 @@ def findandsolvegrids():
     start_time=time()
     # num_success=0
     # num_timeout=0
-    number_to_loop=1 #11 is good for getting up to 10x12
+    number_to_loop=11 #11 is good for getting up to 10x12
     for loop in range(number_to_loop):
         #need to find from database
+        doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  # name is dimensions
+        doc_data  = db.my_db_collection.find_one({"name": doc_name})
 
-        gridgen.create_blank_grids()
-        gridgen.gen_predet_shapes(turtle_fill=False)
+        print(f"doc name: {doc_name}")
+        print("from db:",doc_data.get("rows"),doc_data.get("cols"))
+        grid_shapes=np.array(doc_data.get("grid_shapes"))
+        print (grid_shapes)
+
+
+
+
 
         # gridgen.shape_coords = gridgen.get_shape_coords()
         # gridgen.max_iters = 1e6
@@ -37,15 +46,15 @@ def findandsolvegrids():
         #         num_success+=1
 
         elapsed= round(time()-start_time,2)
-        print (f"grid size {gridgen.num_rows},{gridgen.num_cols}   elapsed {elapsed}")
-        print (gridgen.grid_shapes)
+        # print (f"grid size {gridgen.num_rows},{gridgen.num_cols}   elapsed {elapsed}")
+        # print (gridgen.grid_shapes)
 
-        #now save to database
-        doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  #name is dimensions
-        to_upsert = {"record_type":"for_time_trial", "rows":gridgen.num_rows, "cols":gridgen.num_cols,
-                     "generator_type":"standard predef shapes",
-                    "grid_shapes": gridgen.grid_shapes.tolist()}
-        db.upsert({"name": doc_name}, to_upsert)
+        # #now save to database
+        # doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  #name is dimensions
+        # to_upsert = {"record_type":"for_time_trial", "rows":gridgen.num_rows, "cols":gridgen.num_cols,
+        #              "generator_type":"standard predef shapes",
+        #             "grid_shapes": gridgen.grid_shapes.tolist()}
+        # db.upsert({"name": doc_name}, to_upsert)
 
 
 
@@ -108,3 +117,4 @@ def genandsavegrids():
 if __name__ == '__main__':
     db.connect_suguru_db()
     #genandsavegrids()  'do just once usually
+    findandsolvegrids()
