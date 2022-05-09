@@ -13,41 +13,49 @@ def findandsolvegrids():
     gridgen.verbose=False
     gridgen.display_build=False
 
-    start_time=time()
-    # num_success=0
-    # num_timeout=0
-    number_to_loop=11 #11 is good for getting up to 10x12
+    overall_start_time=time()
+    num_success=0
+    num_timeout=0
+    number_to_loop=7 #11 is good for getting up to 10x12
+
+    gridgen.max_iters = 6.6e7
+    print(f"TIMEOUT DEFAULT: {gridgen.max_iters}")
+
     for loop in range(number_to_loop):
+        per_loop_start_time=time()
         #need to find from database
         doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  # name is dimensions
         doc_data  = db.my_db_collection.find_one({"name": doc_name})
 
-        print(f"doc name: {doc_name}")
+        #print(f"doc name: {doc_name}")
+        print()
         print("from db:",doc_data.get("rows"),doc_data.get("cols"))
         grid_shapes=np.array(doc_data.get("grid_shapes"))
-        print (grid_shapes)
+        #print (grid_shapes)
 
 
+        gridgen.grid_shapes=grid_shapes
+        gridgen.grid = np.zeros((gridgen.num_rows, gridgen.num_cols), dtype=int)
+        gridgen.shape_coords = gridgen.get_shape_coords()
 
+        gridgen.iterate_cell_count = 0
+        gridgen.iterate_number_count = 0
+        gridgen.create_iterate_lookups()
 
+        success = gridgen.real_iterate()
+        #TODO refactor so success is yes/no/timeout
 
-        # gridgen.shape_coords = gridgen.get_shape_coords()
-        # gridgen.max_iters = 1e6
-        # gridgen.iterate_cell_count = 0
-        # gridgen.iterate_number_count = 0
-        #
-        # gridgen.create_iterate_lookups()
-        # success = gridgen.real_iterate()
-        # #TODO refactor so success is yes/no/timeout
-        # if gridgen.iterate_cell_count>=gridgen.max_iters:
-        #     num_timeout+=1
-        # else:
-        #     if success:
-        #         num_success+=1
+        if gridgen.iterate_cell_count>=gridgen.max_iters:
+            num_timeout+=1
+            print ("TIMEOUT")
+        else:
+            if success:
+                num_success+=1
+                print ("SUCCESS")
 
-        elapsed= round(time()-start_time,2)
-        # print (f"grid size {gridgen.num_rows},{gridgen.num_cols}   elapsed {elapsed}")
-        # print (gridgen.grid_shapes)
+        elapsed= round(time()-per_loop_start_time,2)
+        print (f"grid size {gridgen.num_rows},{gridgen.num_cols}   elapsed {elapsed}")
+        print (gridgen.grid)
 
         # #now save to database
         # doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  #name is dimensions
@@ -62,6 +70,10 @@ def findandsolvegrids():
             gridgen.num_rows+=1
         else:
             gridgen.num_cols+=1
+
+    overall_elapsed = round(time() - overall_start_time, 2)
+    print()
+    print ("TOTAL TIME OVERALL",overall_elapsed)
 
 def genandsavegrids():
     #generate and save  multiple grids
