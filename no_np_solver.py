@@ -162,7 +162,7 @@ def nonp_findandsolvegrids():
     ######JUST STARTING THIS
     #find multiple grids from database and try solving
     #global initial variables
-    global num_rows,num_cols, iterate_number_count, iterate_cell_count
+    global num_rows,num_cols, iterate_number_count, iterate_cell_count, max_iters
     num_rows=5   #probably not the way we want to keep that going
     num_cols=7
     verbose=False
@@ -171,10 +171,10 @@ def nonp_findandsolvegrids():
     overall_start_time=time()
     num_success=0
     num_timeout=0
-    number_to_loop=3 #11 is good for getting up to 10x12
+    number_to_loop=7 #11 is good for getting up to 10x12
 
-    max_iters = 1e99 #not really - should be overridden
-    timeout=250 #seconds
+    max_iters = 1e7 #not really - should be overridden
+    timeout=None #250 #seconds
 
 
     print(f"TIMEOUT DEFAULT: {max_iters}")

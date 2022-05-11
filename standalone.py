@@ -18,8 +18,8 @@ def findandsolvegrids():
     num_timeout=0
     number_to_loop=7 #11 is good for getting up to 10x12
 
-    gridgen.max_iters = 1e4 #not really - should be overridden
-    timeout=250 #seconds
+    gridgen.max_iters = 1e7 #not really - should be overridden
+    timeout=None #250 #seconds
 
 
     print(f"TIMEOUT DEFAULT: {gridgen.max_iters}")
