@@ -302,7 +302,7 @@ def get_neighbours(r, c):
 
 def real_iterate(timeout=None):
     # really iterate , not just recursive
-    global iterate_number_count, iterate_cell_count, max_iters
+    global number_count, iterate_cell_count, max_iters
     if timeout:
         timeout_time=time.time()+timeout
     success = False

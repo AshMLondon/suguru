@@ -18,8 +18,8 @@ def findandsolvegrids():
     num_timeout=0
     number_to_loop=7 #11 is good for getting up to 10x12
 
-    gridgen.max_iters = 6.6e6
-    timeout=5 #seconds
+    gridgen.max_iters = 1e4 #not really - should be overridden
+    timeout=250 #seconds
 
 
     print(f"TIMEOUT DEFAULT: {gridgen.max_iters}")
@@ -131,5 +131,5 @@ def genandsavegrids():
 
 if __name__ == '__main__':
     db.connect_suguru_db()
-    #genandsavegrids()  'do just once usually
+    #genandsavegrids()  #'do just once usually
     findandsolvegrids()
