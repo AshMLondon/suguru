@@ -187,6 +187,10 @@ def non_np_real_iterate(grid_shapes,timeout=None):
 
 
 @ app.route("/")
+def simple_test():
+    return "simple test!"
+
+@ app.route("/solve")
 def nonp_findandsolvegrids():
     ######JUST STARTING THIS
     #find multiple grids from database and try solving
