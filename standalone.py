@@ -16,9 +16,9 @@ def findandsolvegrids():
     overall_start_time=time()
     num_success=0
     num_timeout=0
-    number_to_loop=7 #11 is good for getting up to 10x12
+    number_to_loop=6 #11 is good for getting up to 10x12
 
-    gridgen.max_iters = 1e7 #not really - should be overridden
+    gridgen.max_iters = 3e6 #not really - should be overridden
     timeout=None #250 #seconds
 
 

@@ -1,7 +1,28 @@
-#import gridgenerate as gridgen
+## Web No Numpy Solver
+## solver version with No Numpy used - idea is to then use PyPy to run so it's fast (PyPy doesn't seem to cope with Numpy)
+# git push heroku web_version:main
+
+
+from flask import Flask, render_template
 import database_functions as db
-import time
+import time, platform
 from time import time
+
+
+##INITIALISATION
+
+
+## Start Flask Running
+## note to work properly the app.run is at the end after the definitions..
+app = Flask(__name__)
+
+##Initialise DB
+result = db.connect_suguru_db()
+
+## END OF SETUP -- NOW INDIVIDUAL PAGES
+
+
+
 
 def get_shape_coords(grid_shapes):
     global shape_coords, r, c, this_shape, num_rows, num_cols
@@ -47,7 +68,15 @@ def get_neighbours(r, c):
     neighbours.remove((r, c))  # don't include itself
     return neighbours
 
+
+
 def non_np_real_iterate(grid_shapes,timeout=None):
+    '''
+    main iteration function
+    :param grid_shapes:
+    :param timeout:
+    :return:
+    '''
     # really iterate , not just recursive
     global iterate_number_count, iterate_cell_count, max_iters, verbose,iterate_number_count, start_time, num_rows,num_cols
     if timeout:
@@ -157,7 +186,7 @@ def non_np_real_iterate(grid_shapes,timeout=None):
 
 
 
-
+@ app.route("/")
 def nonp_findandsolvegrids():
     ######JUST STARTING THIS
     #find multiple grids from database and try solving
@@ -240,13 +269,22 @@ def nonp_findandsolvegrids():
 
     overall_elapsed = round(time() - overall_start_time, 2)
     print()
-    print ("TOTAL TIME OVERALL",overall_elapsed)
+    print (f"TOTAL TIME OVERALL  {overall_elapsed}")
+
+    html_out=f"Grids {number_to_loop}, Timeout {timeout}, Maxiters {max_iters}  <br/>"
+
+    html_out += f"TOTAL TIME OVERALL  {overall_elapsed} <br/>"
+
+    html_out += f"Python impl: {platform.python_implementation()} "
+
+
+
+
+    return html_out
 
 
 
 
 
 if __name__ == '__main__':
-    db.connect_suguru_db()
-    #genandsavegrids()  #'do just once usually
-    nonp_findandsolvegrids()
+    app.run()
