@@ -1,9 +1,17 @@
 ## Web No Numpy Solver
 ## solver version with No Numpy used - idea is to then use PyPy to run so it's fast (PyPy doesn't seem to cope with Numpy)
-# git push heroku web_version:main
+# git push heroku_pypy  standalone:main
+
+#for special heroku setup:
+#needs its own runtime.txt to specify pypy -- version I managed to get working was:  pypy3.6-7.3.2
+#needs its own requirements.txt  --- seems like this needs editing to be lower versions in many cases
+
+# remember to update heroku environment variables to allow database to connect!
 
 
-from flask import Flask, render_template
+
+from flask import Flask, render_template, jsonify, request
+import requests
 import database_functions as db
 import time, platform
 from time import time
@@ -191,7 +199,7 @@ def simple_test():
     return "simple test!"
 
 @ app.route("/solve")
-def nonp_findandsolvegrids():
+def nonp_findandsolvegrids_fromDB():
     ######JUST STARTING THIS
     #find multiple grids from database and try solving
     #global initial variables
@@ -279,14 +287,63 @@ def nonp_findandsolvegrids():
 
     html_out += f"TOTAL TIME OVERALL  {overall_elapsed} <br/>"
 
-    html_out += f"Python impl: {platform.python_implementation()} "
+    html_out += f"Python impl: {platform.python_implementation()} <br/>"
+
+    to_return={"grid_vales":grid,"success":success,"loadofstringstuff":html_out,"original_grid_shapes_in":grid_shapes}
+
+    return jsonify(to_return)
 
 
 
+@ app.route("/api_target",methods=["POST"])
+def api_target():
+    #this is to test out the POST  passing of data as input to what's going to be my API
+    if request.is_json:
+        submitted=request.get_json()
+        grid_shapes=submitted.get("grid_shapes")
+        print("target...",grid_shapes)
+        if grid_shapes:
+            num_rows=len(grid_shapes)
+            num_cols=len(grid_shapes[0])
+            print("target...", num_rows,num_cols)
 
-    return html_out
+            result_to_send={"result": "grid shapes sent", "rows":num_rows,"cols":num_cols,"grid_shapes":grid_shapes}
+            return jsonify(result_to_send),201
+
+        else:
+            return {"error": "Request must be JSON"}, 415
 
 
+@ app.route("/sendtest")
+def sendtest():
+
+    grid_to_try=    [[16, 18, 15, 19, 3, 4, 4, 4, 4], [16, 16, 15, 3, 3, 3, 4, 2, 5], [17, 16, 15, 15, 3, 1, 2, 2, 2],
+     [17, 16, 11, 15, 1, 1, 1, 2, 6], [12, 11, 11, 11, 14, 1, 20, 6, 6], [12, 12, 11, 9, 9, 9, 9, 6, 7],
+     [12, 10, 10, 8, 8, 8, 9, 6, 7], [12, 13, 10, 10, 10, 8, 8, 7, 7]]
+
+    params={"grid_shapes":grid_to_try}
+    url_send="http://127.0.0.1:5000/api_target"  # "https://sugurupypy.herokuapp.com/solve"
+
+    response = requests.post(url_send, json=params)
+
+    print (response)
+    json_back=response.json()
+    print (json_back)
+    print (json_back.get("grid_shapes"))
+
+
+    return "have called - look at print "
+
+
+'''Ok, note to self time
+I've created a function now that will take a grid_shape and solve it
+I've worked out how to output the result as a JSON output 
+I've started to create a function that will take a GET argument
+what I really need to do now is two things:
+1.send a set of parameters from main prog to API -- where those parameters can include a grid ie list of lists or array
+2.receive a set of parameters within API from wherever sent - where that can absorb a list of lists
+
+'''
 
 
 
