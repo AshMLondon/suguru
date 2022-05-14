@@ -13,7 +13,7 @@
 from flask import Flask, render_template, jsonify, request
 import requests
 import database_functions as db
-import time, platform
+import time, platform, pprint
 from time import time
 
 
@@ -100,6 +100,7 @@ def non_np_real_iterate(grid_shapes,timeout=None):
     numbers_to_try_stack = {}
     cell_iter_no = 0
     keep_iterating = True
+    timed_out = False
     next_step = "starting"
     while keep_iterating:
         # let's start loop off
@@ -178,6 +179,12 @@ def non_np_real_iterate(grid_shapes,timeout=None):
                         print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
                               "rate", rate)
 
+                else:
+                    if not ok_continue:
+                        #if we timed out, set flag
+                        timed_out=True
+
+
             else:
                 # doesn't work try next number
                 next_step = "inc_number"
@@ -187,7 +194,7 @@ def non_np_real_iterate(grid_shapes,timeout=None):
 
     # print(grid)
     # END OF ITERATION
-    return grid,success
+    return grid,success,timed_out
 
 
 
@@ -212,7 +219,7 @@ def nonp_findandsolvegrids_fromDB():
     overall_start_time=time()
     num_success=0
     num_timeout=0
-    number_to_loop=6 #11 is good for getting up to 10x12
+    number_to_loop=2 #11 is good for getting up to 10x12
 
     max_iters = 3e6
     timeout=None #250 #seconds
@@ -248,7 +255,7 @@ def nonp_findandsolvegrids_fromDB():
         # print()
 
 
-        grid,success = non_np_real_iterate(grid_shapes,timeout=timeout)
+        grid,success,timed_out = non_np_real_iterate(grid_shapes,timeout=timeout)
         #TODO refactor so success is yes/no/timeout
 
         if iterate_cell_count>=max_iters:
@@ -295,6 +302,45 @@ def nonp_findandsolvegrids_fromDB():
 
 
 
+@ app.route("/solve_grid_api",methods=["POST"])
+def solve_grid_api():
+    #take a set of grid shapes in and then solve it
+    global num_rows, num_cols, iterate_number_count, iterate_cell_count, max_iters
+    if request.is_json:
+        submitted=request.get_json()
+        grid_shapes=submitted.get("grid_shapes")
+        print("target...",grid_shapes)
+        if grid_shapes:
+            num_rows=len(grid_shapes)
+            num_cols=len(grid_shapes[0])
+            print("target...", num_rows,num_cols)
+
+            #now solve the grid
+
+            #TODO - Refactor so all this preliminary stuff done in one place
+            start_time=time()
+            shape_coords = get_shape_coords(grid_shapes)
+            iterate_cell_count = 0
+            iterate_number_count = 0
+            timeout=500
+            create_iterate_lookups(grid_shapes)
+            grid, success,timed_out = non_np_real_iterate(grid_shapes, timeout=timeout)
+
+            result_to_send={"success": success, "time_elapsed":time()-start_time,"grid_values":grid, "timed_out":timed_out,"rows":num_rows,"cols":num_cols,"grid_shapes":grid_shapes}
+            return jsonify(result_to_send),201
+
+        else:
+            return {"error": "Request must be JSON"}, 415
+
+
+
+
+
+
+
+
+
+
 @ app.route("/api_target",methods=["POST"])
 def api_target():
     #this is to test out the POST  passing of data as input to what's going to be my API
@@ -317,22 +363,24 @@ def api_target():
 @ app.route("/sendtest")
 def sendtest():
 
-    grid_to_try=    [[16, 18, 15, 19, 3, 4, 4, 4, 4], [16, 16, 15, 3, 3, 3, 4, 2, 5], [17, 16, 15, 15, 3, 1, 2, 2, 2],
-     [17, 16, 11, 15, 1, 1, 1, 2, 6], [12, 11, 11, 11, 14, 1, 20, 6, 6], [12, 12, 11, 9, 9, 9, 9, 6, 7],
-     [12, 10, 10, 8, 8, 8, 9, 6, 7], [12, 13, 10, 10, 10, 8, 8, 7, 7]]
+    grid_to_try=    [[3,3,3,2,4,4,5],[3,1,2,2,2,4,5],
+                     [1,1,1,2,6,4,5],[10,1,8,6,6,4,5],[8,8,8,6,7,7,5],[9,9,8,6,7,7,7]]
+    #this 6x7 grid starting 3,3,3 is known to be solvable
 
     params={"grid_shapes":grid_to_try}
-    url_send="http://127.0.0.1:5000/api_target"  # "https://sugurupypy.herokuapp.com/solve"
+    url_send="http://127.0.0.1:5000/solve_grid_api"  # "https://sugurupypy.herokuapp.com/solve"
 
     response = requests.post(url_send, json=params)
 
     print (response)
     json_back=response.json()
-    print (json_back)
-    print (json_back.get("grid_shapes"))
+    pprint.pprint (json_back)
+    print (json_back.get("grid_values"))
 
+    #html_string=f"Grid solver API. Success {json_back.get("success")}"
 
-    return "have called - look at print "
+    #return "have called - look at print "
+    return json_back
 
 
 '''Ok, note to self time
@@ -344,6 +392,12 @@ what I really need to do now is two things:
 2.receive a set of parameters within API from wherever sent - where that can absorb a list of lists
 
 '''
+
+
+
+
+
+
 
 
 
