@@ -300,7 +300,11 @@ def nonp_findandsolvegrids_fromDB():
 
     return jsonify(to_return)
 
-
+@ app.route("/solve_grid_api",methods=["GET"])
+def api_info():
+    return('''Api. Need to POST JSON with grid_shapes =nested list of shapes.<br/>
+           Optional timeout: either timeout= seconds, max_iters = number of iterations. If neither defaults
+           <br/>returns JSON including solution grid_values and whether solved''')
 
 @ app.route("/solve_grid_api",methods=["POST"])
 def solve_grid_api():
@@ -322,11 +326,21 @@ def solve_grid_api():
             shape_coords = get_shape_coords(grid_shapes)
             iterate_cell_count = 0
             iterate_number_count = 0
-            timeout=500
+
+            timeout=submitted.get("timeout")
+            max_iters=submitted.get("max_iters")
+
+            if not (timeout or max_iters):
+                timeout=10   #at least set a default
+
+
+          #second figure is default
             create_iterate_lookups(grid_shapes)
             grid, success,timed_out = non_np_real_iterate(grid_shapes, timeout=timeout)
 
-            result_to_send={"success": success, "time_elapsed":time()-start_time,"grid_values":grid, "timed_out":timed_out,"rows":num_rows,"cols":num_cols,"grid_shapes":grid_shapes}
+            result_to_send={"success": success, "time_elapsed":time()-start_time,
+                            "grid_values":grid, "timed_out":timed_out,"rows":num_rows,"cols":num_cols,
+                            "iterations_used":iterate_cell_count,"timeout":timeout,"max_iters":max_iters,"grid_shapes":grid_shapes}
             return jsonify(result_to_send),201
 
         else:
@@ -341,9 +355,9 @@ def solve_grid_api():
 
 
 
-@ app.route("/api_target",methods=["POST"])
-def api_target():
-    #this is to test out the POST  passing of data as input to what's going to be my API
+@ app.route("/api_target_test",methods=["POST"])
+def api_target_test():
+    #this is JUST A TEST to test out the POST  passing of data as input to what's going to be my API
     if request.is_json:
         submitted=request.get_json()
         grid_shapes=submitted.get("grid_shapes")
@@ -362,6 +376,7 @@ def api_target():
 
 @ app.route("/sendtest")
 def sendtest():
+    #this is testing out the API on the LOCAL machine
 
     grid_to_try=    [[3,3,3,2,4,4,5],[3,1,2,2,2,4,5],
                      [1,1,1,2,6,4,5],[10,1,8,6,6,4,5],[8,8,8,6,7,7,5],[9,9,8,6,7,7,7]]
@@ -381,20 +396,6 @@ def sendtest():
 
     #return "have called - look at print "
     return json_back
-
-
-'''Ok, note to self time
-I've created a function now that will take a grid_shape and solve it
-I've worked out how to output the result as a JSON output 
-I've started to create a function that will take a GET argument
-what I really need to do now is two things:
-1.send a set of parameters from main prog to API -- where those parameters can include a grid ie list of lists or array
-2.receive a set of parameters within API from wherever sent - where that can absorb a list of lists
-
-'''
-
-
-
 
 
 
