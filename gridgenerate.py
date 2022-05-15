@@ -309,6 +309,7 @@ def real_iterate(timeout=None):
     numbers_to_try_stack = {}
     cell_iter_no = 0
     keep_iterating = True
+    timed_out = False
     next_step = "starting"
     while keep_iterating:
         # let's start loop off
@@ -381,6 +382,7 @@ def real_iterate(timeout=None):
                     ok_continue=(time.time()<timeout_time)
                 else:
                     ok_continue=(iterate_cell_count<max_iters)
+                timed_out=not ok_continue
                 if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
                     iterate_cell_count += 1
                     next_step = "ascend"
@@ -402,7 +404,8 @@ def real_iterate(timeout=None):
 
     # print(grid)
     # END OF ITERATION
-    return (success)
+
+    return success, timed_out
 
 
 def create_iterate_lookups():

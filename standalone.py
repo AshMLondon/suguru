@@ -2,6 +2,7 @@ import gridgenerate as gridgen
 import database_functions as db
 import numpy as np
 from time import time
+import requests, pprint
 
 
 def findandsolvegrids():
@@ -16,9 +17,10 @@ def findandsolvegrids():
     overall_start_time=time()
     num_success=0
     num_timeout=0
-    number_to_loop=6 #11 is good for getting up to 10x12
+    number_to_loop=11 #11 is good for getting up to 10x12
+    api_solve=True #False
 
-    gridgen.max_iters = 3e6 #not really - should be overridden
+    gridgen.max_iters = 1e8 #not really - should be overridden
     timeout=None #250 #seconds
 
 
@@ -37,28 +39,40 @@ def findandsolvegrids():
         #print (grid_shapes)
 
 
-        gridgen.grid_shapes=grid_shapes
-        gridgen.grid = np.zeros((gridgen.num_rows, gridgen.num_cols), dtype=int)
-        gridgen.shape_coords = gridgen.get_shape_coords()
+        if api_solve:
+            returned=solve_via_api(grid_shapes,max_iters=gridgen.max_iters)
+            success = returned.get("success")
+            timed_out=returned.get("timed_out")
+            grid_result = returned.get("grid_values")
 
-        gridgen.iterate_cell_count = 0
-        gridgen.iterate_number_count = 0
-        gridgen.create_iterate_lookups()
 
-        success = gridgen.real_iterate(timeout=timeout)
-        #TODO refactor so success is yes/no/timeout
+        else:
 
-        if gridgen.iterate_cell_count>=gridgen.max_iters:
+            gridgen.grid_shapes=grid_shapes
+            gridgen.grid = np.zeros((gridgen.num_rows, gridgen.num_cols), dtype=int)
+            gridgen.shape_coords = gridgen.get_shape_coords()
+
+            gridgen.iterate_cell_count = 0
+            gridgen.iterate_number_count = 0
+            gridgen.create_iterate_lookups()
+
+            success,timed_out = gridgen.real_iterate(timeout=timeout)
+            grid_result=gridgen.grid
+
+
+        if timed_out:
             num_timeout+=1
             print ("TIMEOUT")
         else:
             if success:
                 num_success+=1
                 print ("SUCCESS")
+            else:
+                print ("FAIL")
 
         elapsed= round(time()-per_loop_start_time,2)
         print (f"grid size {gridgen.num_rows},{gridgen.num_cols}   elapsed {elapsed}")
-        print (gridgen.grid)
+        print (grid_result  )
 
         # #now save to database
         # doc_name = f"{gridgen.num_rows},{gridgen.num_cols}"  #name is dimensions
@@ -75,8 +89,28 @@ def findandsolvegrids():
             gridgen.num_cols+=1
 
     overall_elapsed = round(time() - overall_start_time, 2)
-    print()
+    print(f"Total grids {number_to_loop}, Success: {num_success}, Fail: {number_to_loop-num_success-num_timeout}  Timeout {num_timeout}")
     print ("TOTAL TIME OVERALL",overall_elapsed)
+
+
+def solve_via_api(grid_to_try, max_iters=None):
+    '''
+    function to call the api on heroku to get a faster response using pypy
+    :param grid_shapes:
+    :return:
+    '''
+    params={"grid_shapes":grid_to_try.tolist()}  #convert np.array to list
+    if max_iters:
+        params["max_iters"]=max_iters
+    #url_send="http://127.0.0.1:5000/solve_grid_api"
+    url_send="https://sugurupypy.herokuapp.com/solve_grid_api"
+    response = requests.post(url_send, json=params)
+    json_back=response.json()
+    #pprint.pprint (json_back)
+    #print (json_back.get("grid_values"))
+    return json_back
+
+
 
 def genandsavegrids():
     #generate and save  multiple grids
