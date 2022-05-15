@@ -11,7 +11,7 @@ from datetime import datetime
 from pymongo import MongoClient
 global my_db_collection
 
-def connect_suguru_db():
+def connect_suguru_db(collection=None):
     global my_db_collection
     ## CONNECT TO MONGO_DB
     # use environment variable rather than hard code secrets - but format is along lines of:
@@ -19,7 +19,9 @@ def connect_suguru_db():
     connection_string = os.environ.get("SUGURU_CONN_STR")
     myclient = MongoClient(connection_string)
     mydb = myclient['suguru']
-    my_db_collection = mydb['suguru_test']
+    if not collection:
+        collection="suguru_test"  #default
+    my_db_collection = mydb[collection]
     return my_db_collection
 
 

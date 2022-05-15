@@ -2,10 +2,11 @@
 ## Let's try to get this stuff working on the web
 # git push heroku web_version:main
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import gridgenerate as gridgen
 import database_functions as db
 from time import time
+import requests, random
 import pprint
 
 
@@ -85,37 +86,94 @@ def generate_some_grids():
     return render_template("suguru_grid.html", grid_shapes=gridgen.grid_shapes,elapsed=elapsed, shape_colours=shape_colours)
 
 
-@app.route("/solvetest")
+@app.route("/solve")
 def gen_and_solve_multi_grids():
     #generate and solve multiple grids and see how we do
     #global initial variables
-    gridgen.num_rows=8
-    gridgen.num_cols=9
     gridgen.verbose=False
     gridgen.display_build=False
 
-    start_time=time()
-    num_success=0
-    num_timeout=0
+
+    #now some defaults that will get overwritten if
+    gridgen.num_rows=6
+    gridgen.num_cols=5
     number_to_loop=5
+    timeout=4
+    max_iters = None  # no default as timeout is default
+    api_solve = True
+
+    #now overwrite
+    args=request.args
+    size=args.get("size")
+    if size:
+        if "x" in size:
+            size_split=size.split("x")
+            print (size_split)
+            gridgen.num_rows,gridgen.num_cols=int(size_split[0]),int(size_split[1])
+    else:
+        size=str(gridgen.num_rows)+"x"+str(gridgen.num_cols)  #for database entry
+
+    timeout=int(args.get("timeout",timeout))
+    if args.get("max_iters"):
+        max_iters = float(args.get("max_iters"))
+        timeout=None
+    number_to_loop=int(args.get("number",number_to_loop))
+    api_solve=not args.get("api",api_solve)=="False"  #just converting string doesnt seem to work
+
+
+    print(gridgen.num_rows,"x",gridgen.num_cols,number_to_loop,"loops",timeout,"s")
+    start_time=time()
+    num_success,num_timeout =0,0
+    #create a run_stamp to signify which run and be part of unique id put in database
+    letters = "ABCDEFGH"
+    run_stamp=(''.join(random.choice(letters) for i in range(4) ))
+
+    #reconnect to database with new collection
+    db.connect_suguru_db(collection="solved_grids")
+
+
+
     for loop in range(number_to_loop):
         gridgen.create_blank_grids()
         gridgen.gen_predet_shapes(turtle_fill=False)
 
-        gridgen.shape_coords = gridgen.get_shape_coords()
+        #that's generated -- now solve
 
-        gridgen.max_iters = 1e6
-        gridgen.iterate_cell_count = 0
-        gridgen.iterate_number_count = 0
 
-        gridgen.create_iterate_lookups()
-        success, timed_out  = gridgen.real_iterate()
-        #TODO refactor so success is yes/no/timeout
-        if gridgen.iterate_cell_count>=gridgen.max_iters:
-            num_timeout+=1
+        if api_solve:
+            returned=solve_via_api(gridgen.grid_shapes,max_iters=max_iters, timeout=timeout)
+            success = returned.get("success")
+            timed_out=returned.get("timed_out")
+            grid_result = returned.get("grid_values")
+
+
         else:
-            if success:
-                num_success+=1
+
+            gridgen.shape_coords = gridgen.get_shape_coords()
+
+            gridgen.max_iters = max_iters
+            gridgen.iterate_cell_count = 0
+            gridgen.iterate_number_count = 0
+
+            gridgen.create_iterate_lookups()
+            success, timed_out  = gridgen.real_iterate(timeout=timeout)
+            grid_result=gridgen.grid
+
+
+        if timed_out:
+            num_timeout+=1
+
+        if success:
+            num_success+=1
+            print(grid_result)
+            # now let's try adding grid to database
+            doc_name = run_stamp + "-" + str(loop)  # TODO - improve on  this /unique somehow!
+
+            to_upsert = {"grid_shapes": gridgen.grid_shapes.tolist(), "grid_values": grid_result,
+                         "size":size}
+            # note convert array to list before saving to MongoDB - slight hassle but fair enough
+            db.upsert({"name": doc_name}, to_upsert)
+
 
 
 
@@ -127,18 +185,15 @@ def gen_and_solve_multi_grids():
     #print(gridgen.grid_shapes)
     num_fails=number_to_loop-num_success-num_timeout
     html_out=f"Grids tried: {number_to_loop}, Successes: {num_success}, Fails: {num_fails}, Timeout: {num_timeout}, Total time: {elapsed} "
+    html_out+=f" max_iters: {max_iters} Api:{api_solve}"
     return html_out
 
-    '''
-    #now let's try adding grid to database
-    doc_name="last_solving_shape"
-    to_upsert={"grid_shapes":gridgen.grid_shapes.tolist(),"grid_values":gridgen.grid.tolist()}
-    #note convert array to list before saving to MongoDB - slight hassle but fair enough
-    db.upsert({"name":doc_name},to_upsert)
+
+
 
     #return html_out
-    return render_template("suguru_grid.html", grid=gridgen.grid, grid_shapes=gridgen.grid_shapes, elapsed=elapsed, shape_colours=shape_colours)
-    '''
+    #   return render_template("suguru_grid.html", grid=gridgen.grid, grid_shapes=gridgen.grid_shapes, elapsed=elapsed, shape_colours=shape_colours)
+
 
 
 
@@ -186,7 +241,25 @@ def gen_and_solve_one_grids():
     return render_template("suguru_grid.html", grid=gridgen.grid, grid_shapes=gridgen.grid_shapes, elapsed=elapsed, shape_colours=shape_colours)
 
 
+def solve_via_api(grid_to_try, max_iters=None, timeout=None):
+    '''
+    function to call the api on heroku to get a faster response using pypy
+    :param grid_shapes:
+    :return:
+    '''
+    params={"grid_shapes":grid_to_try.tolist()}  #convert np.array to list
+    if max_iters:
+        params["max_iters"]=max_iters
+    if timeout:
+        params["timeout"]=timeout
 
+    #url_send="http://127.0.0.1:5000/solve_grid_api"
+    url_send="https://sugurupypy.herokuapp.com/solve_grid_api"
+    response = requests.post(url_send, json=params)
+    json_back=response.json()
+    #pprint.pprint (json_back)
+    #print (json_back.get("grid_values"))
+    return json_back
 
 
 
