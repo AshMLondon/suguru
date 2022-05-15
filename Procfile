@@ -1,1 +1,1 @@
-web: gunicorn web_no_np_solver:app
+web: gunicorn web_app:app
