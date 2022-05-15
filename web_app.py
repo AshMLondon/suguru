@@ -109,7 +109,7 @@ def gen_and_solve_multi_grids():
         gridgen.iterate_number_count = 0
 
         gridgen.create_iterate_lookups()
-        success = gridgen.real_iterate()
+        success, timed_out  = gridgen.real_iterate()
         #TODO refactor so success is yes/no/timeout
         if gridgen.iterate_cell_count>=gridgen.max_iters:
             num_timeout+=1
@@ -166,7 +166,7 @@ def gen_and_solve_one_grids():
         gridgen.iterate_number_count = 0
 
         gridgen.create_iterate_lookups()
-        success = gridgen.real_iterate()
+        success, timed_out = gridgen.real_iterate()
 
 
 
