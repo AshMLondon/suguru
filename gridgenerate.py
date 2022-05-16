@@ -9,6 +9,10 @@ import time, random    #, pprint, platform
 import numpy as np
 import pandas as pd
 
+#global flags
+verbose = False
+display_build = False
+
 #set this outside __MAIN__ test to initialise
 standard_shapes_tuple=[
         ('cross', [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]),

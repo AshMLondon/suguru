@@ -1,6 +1,6 @@
 ## Web App
 ## Let's try to get this stuff working on the web
-# git push heroku web_version:main
+# git push heroku new_web_multiple:main
 
 from flask import Flask, render_template, request
 import gridgenerate as gridgen
