@@ -9,20 +9,21 @@ import pprint
 import concurrent.futures
 
 
-def gen_and_solve_one():
-    timeout=10
+def gen_and_solve_one(result_list):
+    timeout=5
     gridgen.create_blank_grids()
     gridgen.gen_predet_shapes(turtle_fill=False)
     returned = solve_via_api(gridgen.grid_shapes,  timeout=timeout)
-    return returned
+    result_list.append(returned)
+
 
 
 def gen_and_solve_multi_grids():
     #generate and solve multiple grids and see how we do
     #global initial variables
-    gridgen.num_rows=6
-    gridgen.num_cols=5
-    number_to_loop=2
+    gridgen.num_rows=8
+    gridgen.num_cols=7
+    number_to_loop=4
 
 
     start_time=time()
@@ -38,23 +39,23 @@ def gen_and_solve_multi_grids():
 
     all_results = []
 
-    
 
 
+    with concurrent.futures.ThreadPoolExecutor() as executor:
 
+        for loop in range(number_to_loop):
 
-
-    for loop in range(number_to_loop):
-
-        new_result=gen_and_solve_one()
-        all_results.append(new_result)
+            executor.submit(gen_and_solve_one,all_results)
 
 
     print (all_results)
 
+
     num_success=0
     num_timeout=0
     for result in all_results:
+        print (result)
+
         if result.get("timed_out"):
             num_timeout+=1
 
@@ -69,6 +70,7 @@ def gen_and_solve_multi_grids():
             #              "size":size}
             # # note convert array to list before saving to MongoDB - slight hassle but fair enough
             # db.upsert({"name": doc_name}, to_upsert)
+        
 
 
 

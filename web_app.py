@@ -2,8 +2,11 @@
 ## Let's try to get this stuff working on the web
 # git push heroku new_web_multiple:main
 
-from flask import Flask, render_template, request
 import gridgenerate as gridgen
+from helper_functions import solve_via_api
+
+from flask import Flask, render_template, request
+
 import database_functions as db
 from time import time
 import requests, random
@@ -119,6 +122,9 @@ def gen_and_solve_multi_grids():
         timeout=None
     number_to_loop=int(args.get("number",number_to_loop))
     api_solve=not args.get("api",api_solve)=="False"  #just converting string doesnt seem to work
+    url_override = None
+    if args.get("api")=="local":
+        url_override="http://127.0.0.5:5000/solve_grid_api"
 
 
     print(gridgen.num_rows,"x",gridgen.num_cols,number_to_loop,"loops",timeout,"s")
@@ -127,6 +133,9 @@ def gen_and_solve_multi_grids():
     #create a run_stamp to signify which run and be part of unique id put in database
     letters = "ABCDEFGH"
     run_stamp=(''.join(random.choice(letters) for i in range(4) ))
+
+
+
 
     #reconnect to database with new collection
     db.connect_suguru_db(collection="solved_grids")
@@ -141,7 +150,7 @@ def gen_and_solve_multi_grids():
 
 
         if api_solve:
-            returned=solve_via_api(gridgen.grid_shapes,max_iters=max_iters, timeout=timeout)
+            returned=solve_via_api(gridgen.grid_shapes,max_iters=max_iters, timeout=timeout,url_override=url_override)
             success = returned.get("success")
             timed_out=returned.get("timed_out")
             grid_result = returned.get("grid_values")
@@ -241,7 +250,7 @@ def gen_and_solve_one_grids():
     return render_template("suguru_grid.html", grid=gridgen.grid, grid_shapes=gridgen.grid_shapes, elapsed=elapsed, shape_colours=shape_colours)
 
 
-def solve_via_api(grid_to_try, max_iters=None, timeout=None):
+def ZZsolve_via_api(grid_to_try, max_iters=None, timeout=None):
     '''
     function to call the api on heroku to get a faster response using pypy
     :param grid_shapes:
