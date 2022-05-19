@@ -104,6 +104,7 @@ def gen_and_solve_multi_grids():
     timeout=4
     max_iters = None  # no default as timeout is default
     api_solve = True
+    shuffle_slightly=True
 
     #now overwrite
     args=request.args
@@ -125,6 +126,11 @@ def gen_and_solve_multi_grids():
     url_override = None
     if args.get("api")=="local":
         url_override="http://127.0.0.5:5000/solve_grid_api"
+    elif timeout>28:
+        timeout=28  #max out timeout at 28 secs if heroku
+
+    if args.get("shuffle")=="False":
+        shuffle_slightly=False
 
 
     print(gridgen.num_rows,"x",gridgen.num_cols,number_to_loop,"loops",timeout,"s")
@@ -144,7 +150,7 @@ def gen_and_solve_multi_grids():
 
     for loop in range(number_to_loop):
         gridgen.create_blank_grids()
-        gridgen.gen_predet_shapes(turtle_fill=False)
+        gridgen.gen_predet_shapes(turtle_fill=False,shuffle_slightly=shuffle_slightly)
 
         #that's generated -- now solve
 

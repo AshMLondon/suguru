@@ -8,8 +8,11 @@ by Ashley,  April 2022
 import time, random    #, pprint, platform
 import numpy as np
 import pandas as pd
+from pprint import pprint
 
 #global flags
+import helper_functions
+
 verbose = False
 display_build = False
 
@@ -108,7 +111,7 @@ def translated_shapes(shape_in):
             ##shapes_out.append((shape_array_switched * tr).tolist())
         return shapes_out
 
-def gen_predet_shapes(turtle_fill=True):
+def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=True):
     global start_point, move_coord, count, val, shape, shape_number, new_point, move, shape_permutations, valid, colour, num_rows,num_cols
     # set start coordinates
     # start_point = (int(num_rows / 2), int(num_cols / 2))
@@ -118,12 +121,7 @@ def gen_predet_shapes(turtle_fill=True):
     random.randint(num_rows // 3 - 1, num_rows * 2 // 3 - 1), random.randint(num_cols // 3 - 1, num_cols * 2 // 3 - 1))
     # biased to middle third
     move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
-    # defined_shapes_to_choose = \
-    # {"cross": [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]],
-    #  "snake": [[0, 0], [0, 1], [0, 2], [1, -1], [1, 0]],
-    #  "L": [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0]],
-    #  "gun": [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1]]
-    #  }
+
     defined_shapes_to_choose = []  # let's try a list of lists, at least that's got a defined order
     for count, val in enumerate(standard_shapes_long_as_list):
         if count % 2 == 0:
@@ -138,7 +136,18 @@ def gen_predet_shapes(turtle_fill=True):
     # TODO - deal with those differently  --- need to pop even if not print
     # TODO - better have 6 separate lists  5,4,3,2,1 shapes and then fatal shape - and then combine as needed, or randomise parts as needed
     # print (defined_shapes_to_choose)
-    defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
+
+    if shuffle_at_start:
+        shapes_to_shuffle=defined_shapes_to_choose[:10] #5 cell  shapes only
+        random.shuffle(shapes_to_shuffle)
+        print(shapes_to_shuffle)
+        defined_shapes_to_choose_shuffled=shapes_to_shuffle+defined_shapes_to_choose[7:]
+
+    else:
+        defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
+
+
+
     # todo - why isn't this printing?
     # TODO - plus now need to stop when finished and also add some randomness
     go = 1
@@ -185,7 +194,7 @@ def gen_predet_shapes(turtle_fill=True):
         else:
             go += 1
             # choose where to move next
-            random_move = False
+            random_move = False #True #False
             if random_move:
                 move = random.choice(move_coord)
                 pot_new_point = add_coords(move, new_point)
@@ -208,21 +217,42 @@ def gen_predet_shapes(turtle_fill=True):
         if not finished:
             # random choice whether to shuffle or use preferred order
             # TODO -- when randomly shuffling the shape order, first shuffle the 5 length shapes they should still be preferred before the others
-            if random.random() < 1:
-                defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
-            else:
-                random.shuffle(defined_shapes_to_choose_shuffled)
+
+            if shuffle_slightly:
+                if random.random()<0.1:
+                    defined_shapes_to_choose_shuffled = defined_shapes_to_choose.copy()
+                    shuffle_number=random.randint(1,7)
+                    #print ("start",len(defined_shapes_to_choose_shuffled))
+                    #pprint(defined_shapes_to_choose_shuffled)
+                    shape_to_swap=defined_shapes_to_choose_shuffled.pop(shuffle_number)
+                    print(shape_to_swap)
+                    defined_shapes_to_choose_shuffled.insert(0,shape_to_swap)
+                    #print("switched",len(defined_shapes_to_choose_shuffled))
+                    #pprint(defined_shapes_to_choose_shuffled)
+
+
+
+            # elif random.random() < 1:
+            #     defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
+            # else:
+            #     random.shuffle(defined_shapes_to_choose_shuffled)
+
+
             for shape_name, base_shape in defined_shapes_to_choose_shuffled:
                 # shape_to_try = [[0, 0], [1, -1], [1, 0], [1, 1], [2, 0]]
                 if verbose: print("*****SHAPE:", shape_name)
 
                 # TODO: we're going to need all the translations of the shape to try
                 shape_permutations = translated_shapes(base_shape)
+                shuffled_shape_rotation=True
+                if shuffled_shape_rotation:
+                    random.shuffle(shape_permutations)
+                    #shuffle permutations so the shapes don't tend to completely align automatically
 
                 for shape_to_try in shape_permutations:
                     if verbose: print(shape_to_try)
 
-                    # TODO -- add in the full set of shapes
+                    # TODO -- add in the full set of shapes ///surely I have haven't i?
 
                     for home_coord in shape_to_try:
                         # now alter which cell of the shape is the one to line up  on the starting cell
@@ -440,16 +470,16 @@ if __name__ == '__main__':
 
 
     #global variables used by generator functions
-    num_cols = 9  #9  # 8 or 13
-    num_rows = 7   #7  # 6 or 10
+    num_cols = 8  #9  # 8 or 13
+    num_rows = 6   #7  # 6 or 10
 
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 1e6  # 1e99
+    max_iters = 4e6  # 1e99
     outer_loop = True
     stop_on_success = False #True #False
-    grids_to_try = 10  # if not stop on success how long to continue
+    grids_to_try = 40  # if not stop on success how long to continue
     success_count = 0
     timeouts_count = 0
 
@@ -462,7 +492,7 @@ if __name__ == '__main__':
     horiz_offset = cell_draw_size / 2
     vert_offset = cell_draw_size * .9
     row_width = cell_draw_size * (num_cols - 1)
-    display_build = False #False #True  # False #show shapes  building up slowly, or jump in one go
+    display_build = True #False #False #True  # False #show shapes  building up slowly, or jump in one go
     start_time_all_grids = time.time()
     time_grid_gen=0
     time_grid_solve=0
@@ -827,17 +857,27 @@ if __name__ == '__main__':
             iterate_cell_count = 0
             iterate_number_count = 0
             start_time = time.time()
+            via_api=True
 
             create_iterate_lookups()
 
-            success = real_iterate()
+            if via_api:
+                returned=helper_functions.solve_via_api(grid_shapes,max_iters=max_iters)
+                timed_out=returned["timed_out"]
+                success= returned["success"]
+                grid=np.array(returned["grid_values"])
+            else:
 
-            if iterate_cell_count >= max_iters:
-                success = False
+                success,timed_out = real_iterate()
+            #print ("WAS IT A SUCCESS?",success)
+            #TODO: could add possibility of doing this via API -- may be slightly complex
+            # as a few things are global variables in this module and may need passing back and forth
+
+            if timed_out:
                 timeouts_count += 1
 
-            if iterate_cell_count > max_iters_used:
-                max_iters_used = iterate_cell_count
+            # if iterate_cell_count > max_iters_used:
+            #     max_iters_used = iterate_cell_count
 
             if success:
                 success_count += 1
