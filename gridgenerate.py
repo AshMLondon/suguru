@@ -111,7 +111,7 @@ def translated_shapes(shape_in):
             ##shapes_out.append((shape_array_switched * tr).tolist())
         return shapes_out
 
-def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=True):
+def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=False, funky_shuffle=True):
     global start_point, move_coord, count, val, shape, shape_number, new_point, move, shape_permutations, valid, colour, num_rows,num_cols
     # set start coordinates
     # start_point = (int(num_rows / 2), int(num_cols / 2))
@@ -141,7 +141,8 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
         shapes_to_shuffle=defined_shapes_to_choose[:10] #5 cell  shapes only
         random.shuffle(shapes_to_shuffle)
         print(shapes_to_shuffle)
-        defined_shapes_to_choose_shuffled=shapes_to_shuffle+defined_shapes_to_choose[7:]
+        defined_shapes_to_choose_shuffled=shapes_to_shuffle+defined_shapes_to_choose[10:]
+        print(defined_shapes_to_choose_shuffled)
 
     else:
         defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
@@ -182,8 +183,11 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
 
     finished = False
     for loops in range(50):  # was 500 -- stopping to try spiral
+        # ##THIS LOOP WRONG!!  only need to loop multi times to find a starting point - not to choose shapes [we go through every possible shape permutation after all]
+        #TODO: this should really be a While loop --- shouldn't need to keep trying if done correctly
 
         # choose a direction to go
+
         if verbose: print(go)
         if display_build: time.sleep(.02)
         if go == 1:
@@ -194,17 +198,21 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
         else:
             go += 1
             # choose where to move next
-            random_move = False #True #False
+            random_move = True #False
             if random_move:
                 move = random.choice(move_coord)
                 pot_new_point = add_coords(move, new_point)
                 if in_bounds(pot_new_point):
                     new_point = pot_new_point
+                    print("grid value:",grid[new_point])
                 else:
-                    continue  # meaning restart the loop as out of bounds
-            else:  # try spiral move
-                spiral_point = next_free_space_spiral(new_point)
-                # spiral_point = next_free_space_spiral(start_point)
+                    print ("out of bounds")
+                    #continue  # meaning restart the loop as out of bounds -- don't do this now using spiral immediately after
+            if True:  # try spiral move in all cases whatever
+                if random.random()<.3:
+                    spiral_point = next_free_space_spiral(new_point)
+                else:
+                    spiral_point = next_free_space_spiral(start_point)
                 if verbose: print(f"spiral point {spiral_point} -- original in {new_point}")
                 if spiral_point:
                     new_point = spiral_point
@@ -214,9 +222,30 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
                     finished = True
                     break
 
+        #location to solve now set
+        if verbose:
+            print ("Solve Point: ",new_point)
+            if grid_shapes[new_point]:
+                print ("*****grid occupied there *****###")
+
         if not finished:
             # random choice whether to shuffle or use preferred order
             # TODO -- when randomly shuffling the shape order, first shuffle the 5 length shapes they should still be preferred before the others
+
+            if funky_shuffle:
+                random_threshold=0.15
+                if defined_shapes_to_choose_shuffled[0][0] in ["cross","steps","snake"]:
+                    random_threshold=0.8
+                elif defined_shapes_to_choose_shuffled[0][0] in ["gun","seahorse"]:
+                    random_threshold = 0.5
+                print(defined_shapes_to_choose_shuffled[0][0],random_threshold)
+
+                if random.random()>random_threshold:  #shuffle if higher than threshold
+                    shapes_to_shuffle = defined_shapes_to_choose[:10]  # 5 cell  shapes only
+                    random.shuffle(shapes_to_shuffle)
+                    print(shapes_to_shuffle)
+                    defined_shapes_to_choose_shuffled = shapes_to_shuffle + defined_shapes_to_choose[10:]
+                    print(defined_shapes_to_choose_shuffled)
 
             if shuffle_slightly:
                 if random.random()<0.1:
@@ -229,6 +258,9 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
                     defined_shapes_to_choose_shuffled.insert(0,shape_to_swap)
                     #print("switched",len(defined_shapes_to_choose_shuffled))
                     #pprint(defined_shapes_to_choose_shuffled)
+
+
+
 
 
 
@@ -289,7 +321,8 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=T
 
             # if it fails loop back to try a different shape
             else:
-                if verbose: print(f"not found valid shape possibility, coord={new_point}")
+                #if verbose: print(f"not found valid shape possibility, coord={new_point}")
+                print(f"not found valid shape possibility, coord={new_point}")   #this shouldn't really happen should it?
 
 def add_coords(coord1, coord2,offset=(0,0)):
     return (coord1[0] + coord2[0] + offset[0], coord1[1] + coord2[1] + offset[1])
@@ -468,15 +501,16 @@ if __name__ == '__main__':
 
     import turtle
 
+    #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 8  #9  # 8 or 13
-    num_rows = 6   #7  # 6 or 10
+    num_cols = 13   #9  # 8 or 13
+    num_rows = 10   #7  # 6 or 10
 
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 4e6  # 1e99
+    max_iters = 5e8  # 1e99
     outer_loop = True
     stop_on_success = False #True #False
     grids_to_try = 40  # if not stop on success how long to continue
@@ -492,7 +526,7 @@ if __name__ == '__main__':
     horiz_offset = cell_draw_size / 2
     vert_offset = cell_draw_size * .9
     row_width = cell_draw_size * (num_cols - 1)
-    display_build = True #False #False #True  # False #show shapes  building up slowly, or jump in one go
+    display_build = False #True #False #False #True  # False #show shapes  building up slowly, or jump in one go
     start_time_all_grids = time.time()
     time_grid_gen=0
     time_grid_solve=0
