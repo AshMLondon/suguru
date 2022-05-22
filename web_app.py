@@ -190,6 +190,9 @@ def gen_and_solve_multi_grids():
             db.upsert({"name": doc_name}, to_upsert)
 
 
+        print (f"loop: {loop}  success: {success}   timeout: {timed_out}")
+
+
 
 
 
@@ -199,7 +202,7 @@ def gen_and_solve_multi_grids():
     #shape_colours = get_unique_colours()
     #print(gridgen.grid_shapes)
     num_fails=number_to_loop-num_success-num_timeout
-    html_out=f"Grids tried: {number_to_loop}, Successes: {num_success}, Fails: {num_fails}, Timeout: {num_timeout}, Total time: {elapsed} "
+    html_out=f"Size: {size}  Grids tried: {number_to_loop}, Successes: {num_success}, Fails: {num_fails}, Timeout: {timeout}, Total time: {elapsed} "
     html_out+=f" max_iters: {max_iters} Api:{api_solve}"
     return html_out
 

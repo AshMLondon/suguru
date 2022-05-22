@@ -140,7 +140,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     if shuffle_at_start:
         shapes_to_shuffle=defined_shapes_to_choose[:10] #5 cell  shapes only
         random.shuffle(shapes_to_shuffle)
-        print(shapes_to_shuffle)
+        print("shuffle at start:",shapes_to_shuffle)
         defined_shapes_to_choose_shuffled=shapes_to_shuffle+defined_shapes_to_choose[10:]
         print(defined_shapes_to_choose_shuffled)
 
@@ -204,9 +204,10 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                 pot_new_point = add_coords(move, new_point)
                 if in_bounds(pot_new_point):
                     new_point = pot_new_point
-                    print("grid value:",grid[new_point])
+                    #print("grid value:",grid[new_point])
                 else:
-                    print ("out of bounds")
+                    pass
+                    #print ("out of bounds")
                     #continue  # meaning restart the loop as out of bounds -- don't do this now using spiral immediately after
             if True:  # try spiral move in all cases whatever
                 if random.random()<.3:
@@ -238,14 +239,14 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                     random_threshold=0.8
                 elif defined_shapes_to_choose_shuffled[0][0] in ["gun","seahorse"]:
                     random_threshold = 0.5
-                print(defined_shapes_to_choose_shuffled[0][0],random_threshold)
+                #print(defined_shapes_to_choose_shuffled[0][0],random_threshold)
 
                 if random.random()>random_threshold:  #shuffle if higher than threshold
                     shapes_to_shuffle = defined_shapes_to_choose[:10]  # 5 cell  shapes only
                     random.shuffle(shapes_to_shuffle)
-                    print(shapes_to_shuffle)
+                    #print(shapes_to_shuffle)
                     defined_shapes_to_choose_shuffled = shapes_to_shuffle + defined_shapes_to_choose[10:]
-                    print(defined_shapes_to_choose_shuffled)
+                    #print(defined_shapes_to_choose_shuffled)
 
             if shuffle_slightly:
                 if random.random()<0.1:
@@ -504,13 +505,13 @@ if __name__ == '__main__':
     #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 13   #9  # 8 or 13
-    num_rows = 10   #7  # 6 or 10
+    num_cols = 9   #9  # 8 or 13
+    num_rows = 7   #7  # 6 or 10
 
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 5e8  # 1e99
+    max_iters = 1e8  # 1e99
     outer_loop = True
     stop_on_success = False #True #False
     grids_to_try = 40  # if not stop on success how long to continue
@@ -542,6 +543,8 @@ if __name__ == '__main__':
     found_one_yet = False
     max_iters_used = 0
     fatal_eliminated = 0
+
+    single_cell_success_tracker,single_cell_fail_tracker=[],[]
 
     screen = turtle.Screen()
     screen.delay(0)
@@ -777,6 +780,16 @@ if __name__ == '__main__':
 
             #turtle.done()
 
+            #single cell check
+            single_cell_count=0
+            for shape_no, shape in shape_coords.items():
+                if len(shape)==1:
+                    single_cell_count+=1
+            print ("single cell: ",single_cell_count)
+            #TODO Next -- maybe go through all shapes and see how many non-5 cell neighbours they have
+
+
+
 
 
             # keep count on which shapes are used - useful when looping multiple grids
@@ -896,7 +909,7 @@ if __name__ == '__main__':
             create_iterate_lookups()
 
             if via_api:
-                returned=helper_functions.solve_via_api(grid_shapes,max_iters=max_iters)
+                returned=helper_functions.solve_via_api(grid_shapes,max_iters=max_iters,url_override="local")
                 timed_out=returned["timed_out"]
                 success= returned["success"]
                 grid=np.array(returned["grid_values"])
@@ -909,13 +922,17 @@ if __name__ == '__main__':
 
             if timed_out:
                 timeouts_count += 1
+            else:
+                print ("result achieved -- success?", success)
 
             # if iterate_cell_count > max_iters_used:
             #     max_iters_used = iterate_cell_count
 
+
             if success:
                 success_count += 1
-                print("success?", success)
+                single_cell_success_tracker.append(single_cell_count)
+
                 print(grid)
                 print(grid_shapes)
 
@@ -931,6 +948,9 @@ if __name__ == '__main__':
                         success_shape_count[rebased_shape] += 1
                     else:
                         success_shape_count[rebased_shape] = 1
+
+            else:
+                single_cell_fail_tracker.append(single_cell_count)
 
             elapsed = time.time() - start_time
             time_grid_solve += elapsed
@@ -1128,5 +1148,10 @@ if __name__ == '__main__':
         print("*****NEW SHAPE FOUND&********")
     else:
         print("(no new shapes)")
+
+
+    print ("single cells...")
+    print ("success: ",sum(single_cell_success_tracker)/len(single_cell_success_tracker),single_cell_success_tracker)
+    print ("fail: ",sum(single_cell_fail_tracker)/len(single_cell_fail_tracker),single_cell_fail_tracker)
 
     turtle.done()
