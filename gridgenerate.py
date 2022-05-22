@@ -260,11 +260,6 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                     #print("switched",len(defined_shapes_to_choose_shuffled))
                     #pprint(defined_shapes_to_choose_shuffled)
 
-
-
-
-
-
             # elif random.random() < 1:
             #     defined_shapes_to_choose_shuffled = defined_shapes_to_choose[:]
             # else:
@@ -304,6 +299,46 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                             if grid_shapes[adjusted_coord] != 0:  # already occupied
                                 valid = False
                                 break
+
+                        #last test - does it create a blocked off single cell (this is generally a bad thing)
+                        #what's the logic for this?
+                        #for every cell in the new shape, work out what are the "affected cells" - ie those that are directly adjacent (not diagonal)
+                        #then for every affected cell, see if it is blank and see if its own direct sideways neighbours are completely blocked by existing or this new shape
+                        #ideally if already blocked, then this is already a problem - leave it be
+                        #so long as at least one sideways escape route, that's ok
+                        #otherwise fail this shape
+
+                        single_cell_stop=True
+                        if single_cell_stop:
+                            if valid:
+                                #first establish affected cells
+                                affected_cells=set()
+                                shape_try_adjusted=[]
+                                for coord in shape_to_try:
+                                    adjusted_coord = add_coords(coord, new_point, home_coord_offset)
+                                    shape_try_adjusted.append(adjusted_coord)
+                                    affected_cells.update(get_sideways_neighbours(adjusted_coord))
+
+                                for coord in affected_cells:
+                                    if coord not in shape_try_adjusted and grid_shapes[coord]==0: #don't check members of prospective shape itself and affected cell needs to be empty
+                                        sideways_neighbours=get_sideways_neighbours(coord)
+                                        empty_before_shape=0
+                                        empty_after_shape=0
+                                        #logic that follows - we need affected shapes to have at least 1 blank - after the shape has gone in (if had 0 before that's ok)
+                                        for nb in sideways_neighbours:
+                                            if grid_shapes[nb]==0:
+                                                empty_before_shape+=1
+                                                if nb not in shape_try_adjusted:
+                                                    empty_after_shape+=1
+                                        if empty_after_shape==0 and empty_before_shape!=0:
+                                            valid=False
+                                            print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
+                                            break
+
+                                #print (f"shape number {shape_number}-- valid {valid} -- shape coords {shape_try_adjusted} ** affected cells: {affected_cells}")
+
+
+
 
                         if valid: break
                     if valid: break
@@ -365,6 +400,18 @@ def get_neighbours(r, c):
                 if 0 <= nb_c <= num_cols - 1:
                     neighbours.append((nb_r, nb_c))
     neighbours.remove((r, c))  # don't include itself
+    return neighbours
+
+def get_sideways_neighbours(coord):
+    #ie no diagonals
+    r,c = coord
+    neighbours = []
+    for nb_r in range(r - 1, r + 2,2):  #hopefully the 2 will skip over itself
+        if 0 <= nb_r <= num_rows - 1:
+            neighbours.append((nb_r, c))
+    for nb_c in range(c - 1, c + 2,2):
+        if 0 <= nb_c <= num_cols - 1:
+            neighbours.append((r, nb_c))
     return neighbours
 
 
@@ -505,13 +552,13 @@ if __name__ == '__main__':
     #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 9   #9  # 8 or 13
-    num_rows = 7   #7  # 6 or 10
+    num_cols = 13   #9  # 8 or 13
+    num_rows = 10   #7  # 6 or 10
 
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 1e8  # 1e99
+    max_iters = 4e7 #1e8  # 1e99
     outer_loop = True
     stop_on_success = False #True #False
     grids_to_try = 40  # if not stop on success how long to continue
