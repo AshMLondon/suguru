@@ -123,6 +123,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
 
     defined_shapes_to_choose = []  # let's try a list of lists, at least that's got a defined order
+    #TODO - at least make this happen once not every loop
     for count, val in enumerate(standard_shapes_long_as_list):
         if count % 2 == 0:
             shape = [val]
@@ -153,6 +154,9 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     # TODO - plus now need to stop when finished and also add some randomness
     go = 1
     shape_number = 1
+
+    single_cell_count=0
+    single_cell_max=random.randint(0,3)
 
     def next_free_space_spiral(start_coord):
         # this function spirals outwards from starting coord (r,c) until it finds an empty cell
@@ -308,7 +312,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                         #so long as at least one sideways escape route, that's ok
                         #otherwise fail this shape
 
-                        single_cell_stop=True
+
                         if single_cell_stop:
                             if valid:
                                 #first establish affected cells
@@ -331,9 +335,12 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                                                 if nb not in shape_try_adjusted:
                                                     empty_after_shape+=1
                                         if empty_after_shape==0 and empty_before_shape!=0:
-                                            valid=False
-                                            print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
-                                            break
+                                            single_cell_count+=1
+                                            if single_cell_count>single_cell_max:  #allow *some*
+                                                #TODO check how close?
+                                                valid=False
+                                                print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
+                                                break
 
                                 #print (f"shape number {shape_number}-- valid {valid} -- shape coords {shape_try_adjusted} ** affected cells: {affected_cells}")
 
@@ -558,10 +565,14 @@ if __name__ == '__main__':
 
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 4e7 #1e8  # 1e99
+    max_iters = 2e9 #1e8  # 1e99
+    timeout=4
     outer_loop = True
     stop_on_success = False #True #False
-    grids_to_try = 40  # if not stop on success how long to continue
+    grids_to_try = 200  # if not stop on success how long to continue
+    single_cell_stop = True
+
+
     success_count = 0
     timeouts_count = 0
 
@@ -956,7 +967,7 @@ if __name__ == '__main__':
             create_iterate_lookups()
 
             if via_api:
-                returned=helper_functions.solve_via_api(grid_shapes,max_iters=max_iters,url_override="local")
+                returned=helper_functions.solve_via_api(grid_shapes,max_iters=max_iters,url_override="local",timeout=timeout)
                 timed_out=returned["timed_out"]
                 success= returned["success"]
                 grid=np.array(returned["grid_values"])
@@ -1015,7 +1026,7 @@ if __name__ == '__main__':
 
 
             # now numbers
-            def display_numbers():
+            def display_numbers(zero_override=None):
                 screen.tracer(1)
                 pen.left(90)
                 pen.up()
@@ -1032,6 +1043,9 @@ if __name__ == '__main__':
                     for c in range(num_cols):
                         if grid[r, c] != 0:
                             pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
+                        elif zero_override:
+                            pen.write(zero_override, align="center", font=("Arial", 20, "normal"))
+
                         pen.forward(cell_draw_size)
                     pen.right(90)
                     pen.forward(cell_draw_size)
@@ -1041,7 +1055,8 @@ if __name__ == '__main__':
                 screen.tracer(0)
 
 
-            display_numbers()
+            zero_override = "X" if not success and not timed_out  else None
+            display_numbers(zero_override=zero_override)
 
             if success or grids_tried > 0:
                 found_one_yet = success  # True to stop
@@ -1196,9 +1211,10 @@ if __name__ == '__main__':
     else:
         print("(no new shapes)")
 
-
+    scsucess_av=0 if len(single_cell_success_tracker)==0 else sum(single_cell_success_tracker)/len(single_cell_success_tracker)
+    scfail_av = 0 if len(single_cell_fail_tracker) == 0 else sum(single_cell_fail_tracker) / len(single_cell_fail_tracker)
     print ("single cells...")
-    print ("success: ",sum(single_cell_success_tracker)/len(single_cell_success_tracker),single_cell_success_tracker)
-    print ("fail: ",sum(single_cell_fail_tracker)/len(single_cell_fail_tracker),single_cell_fail_tracker)
+    print ("success:  ",scsucess_av,single_cell_success_tracker)
+    print ("fail: ",scfail_av,single_cell_fail_tracker)
 
     turtle.done()
