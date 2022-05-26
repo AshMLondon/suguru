@@ -529,6 +529,120 @@ def real_iterate(timeout=None):
 
     return success, timed_out
 
+def real_iterate_multi(timeout=None):
+    #Iterating solver -- can find multiple solutions
+    global iterate_number_count, iterate_cell_count, max_iters
+    if timeout:
+        timeout_time=time.time()+timeout
+    success = False
+    total_solutions=0
+    solution_grids_found=[]
+    numbers_to_try_stack = {}
+    cell_iter_no = 0
+    keep_iterating = True
+    timed_out = False
+    next_step = "starting"
+    while keep_iterating:
+        # let's start loop off
+        # print("next step",next_step)
+        if next_step == "ascend":
+            if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
+                cell_iter_no += 1
+                iterate_cell_count += 1
+                if verbose:
+                    if iterate_cell_count % 50000 == 0:
+                        elapsed = time.time() - start_time
+                        if not elapsed:
+                            rate = 0
+                        else:
+                            rate = iterate_cell_count / elapsed
+                        print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,
+                              "time", elapsed, "rate", rate)
+            else:
+                # got as far as end cell - complete
+                total_solutions+=1
+                print(f"solution found --- number {total_solutions}  cell  number {cell_iter_no}")
+                #print (grid)
+                solution_grids_found.append(grid)
+
+        if next_step == "descend":
+            grid[rc] = 0
+            cell_iter_no -= 1
+            if cell_iter_no < 0:
+                next_step = "EXHAUSTED"
+                break
+
+        rc = row_col[cell_iter_no]
+        # print ("rc",rc)
+
+        if next_step == "ascend" or next_step == "starting":
+            max_nums, shapes = iter_shapes[cell_iter_no]
+            nums_avail = list(range(1, max_nums + 1))
+            for shape in shapes:
+                this_num = grid[shape]
+                if this_num in nums_avail:
+                    nums_avail.remove(this_num)
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+
+        elif next_step == "descend":
+            max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
+            nums_avail = numbers_to_try_stack[cell_iter_no]
+
+        # now we actually iterate do we?
+        # print ("where we're at",cell_iter_no,nums_avail)
+
+        if not nums_avail:
+            # run out of numbers for cell, retreat
+            next_step = "descend"
+        else: #keep trying numbers in this cell
+            num_to_try = nums_avail.pop(0)
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+
+            grid[rc] = num_to_try
+            iterate_number_count += 1
+            # now let's check if valid
+            valid = True
+            neighbours = iter_nonshape_neighbours[cell_iter_no]
+            for nb in neighbours:
+                if grid[nb] == num_to_try:
+                    valid = False
+                    break
+
+            # if ok - ascend a level in iteration
+            if valid:
+                if timeout:
+                    ok_continue=(time.time()<timeout_time)
+                else:
+                    ok_continue=(iterate_cell_count<max_iters)
+                timed_out=not ok_continue
+                if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
+                    iterate_cell_count += 1
+                    next_step = "ascend"
+                    if iterate_cell_count % 10000 == 0:
+                        elapsed = time.time() - start_time
+                        if not elapsed:
+                            rate = 0
+                        else:
+                            rate = iterate_cell_count / elapsed
+                        print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
+                              "rate", rate)
+
+            else:
+                # doesn't work try next number
+                next_step = "inc_number"
+                grid[rc] = 0
+
+        # this is end of while loop I think
+
+    # print(grid)
+    # END OF ITERATION
+
+    if total_solutions==1:
+        success=True
+
+
+    return success, timed_out,
+
 
 def create_iterate_lookups():
     global iter_shapes, iter_nonshape_neighbours, row_col
@@ -559,20 +673,22 @@ if __name__ == '__main__':
     #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 13   #9  # 8 or 13
-    num_rows = 10   #7  # 6 or 10
+    num_cols = 8   #9  # 8 or 13
+    num_rows = 6   #7  # 6 or 10
 
-
+    #settings
+    random.seed(12345) #***FOR A BIT OF PREDICTABILITY
     eliminate_fatal_shapes = True
     verbose = False
-    max_iters = 2e9 #1e8  # 1e99
-    timeout=4
+    max_iters = 1e6 #1e8  # 1e99
+    #timeout=4
     outer_loop = True
     stop_on_success = False #True #False
-    grids_to_try = 200  # if not stop on success how long to continue
+    grids_to_try = 1  # if not stop on success how long to continue
     single_cell_stop = True
+    via_api = False #True
 
-
+    #variables
     success_count = 0
     timeouts_count = 0
 
@@ -590,13 +706,6 @@ if __name__ == '__main__':
     time_grid_gen=0
     time_grid_solve=0
 
-
-
-
-
-
-
-
     grids_tried = 0
     found_one_yet = False
     max_iters_used = 0
@@ -607,6 +716,7 @@ if __name__ == '__main__':
     screen = turtle.Screen()
     screen.delay(0)
     screen.tracer(0)
+    screen.setup(startx=50,starty=50)  #where the turtle screen starts on the computer screen
     if display_build: screen.tracer(1)
 
     pen = turtle.Turtle()
@@ -675,17 +785,6 @@ if __name__ == '__main__':
             pen.forward(cell_draw_size)
             pen.right(90)
         pen.end_fill()
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -962,7 +1061,7 @@ if __name__ == '__main__':
             iterate_cell_count = 0
             iterate_number_count = 0
             start_time = time.time()
-            via_api=True
+
 
             create_iterate_lookups()
 
@@ -973,10 +1072,11 @@ if __name__ == '__main__':
                 grid=np.array(returned["grid_values"])
             else:
 
-                success,timed_out = real_iterate()
+                # success,timed_out = real_iterate()
+                success, timed_out = real_iterate_multi()
+
             #print ("WAS IT A SUCCESS?",success)
-            #TODO: could add possibility of doing this via API -- may be slightly complex
-            # as a few things are global variables in this module and may need passing back and forth
+
 
             if timed_out:
                 timeouts_count += 1
@@ -985,6 +1085,8 @@ if __name__ == '__main__':
 
             # if iterate_cell_count > max_iters_used:
             #     max_iters_used = iterate_cell_count
+
+
 
 
             if success:
@@ -1216,5 +1318,8 @@ if __name__ == '__main__':
     print ("single cells...")
     print ("success:  ",scsucess_av,single_cell_success_tracker)
     print ("fail: ",scfail_av,single_cell_fail_tracker)
+
+
+
 
     turtle.done()
