@@ -367,8 +367,41 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                 #if verbose: print(f"not found valid shape possibility, coord={new_point}")
                 print(f"not found valid shape possibility, coord={new_point}")   #this shouldn't really happen should it?
 
+
+
+
+
 def add_coords(coord1, coord2,offset=(0,0)):
     return (coord1[0] + coord2[0] + offset[0], coord1[1] + coord2[1] + offset[1])
+
+
+def display_numbers(zero_override=None):
+    screen.tracer(1)
+    pen.left(90)
+    pen.up()
+    pen.setpos(start_coords)
+    horiz_offset = cell_draw_size / 2
+    vert_offset = cell_draw_size * .9
+    pen.forward(horiz_offset)  # centre horizontally
+    pen.right(90)
+    screen.tracer(0)
+
+    pen.forward(vert_offset)  # vertical adjustment
+    pen.left(90)
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r, c] != 0:
+                pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
+            elif zero_override:
+                pen.write(zero_override, align="center", font=("Arial", 20, "normal"))
+
+            pen.forward(cell_draw_size)
+        pen.right(90)
+        pen.forward(cell_draw_size)
+        pen.left(90)
+        pen.backward(row_width + cell_draw_size)
+
+    screen.tracer(0)
 
 def in_bounds(coord):
     valid = (0 <= coord[0] <= num_rows - 1) and (0 <= coord[1] <= num_cols - 1)
@@ -529,11 +562,15 @@ def real_iterate(timeout=None):
 
     return success, timed_out
 
-def real_iterate_multi(timeout=None):
+def real_iterate_multi(timeout=None,max_solutions=2):
     #Iterating solver -- can find multiple solutions
+
     global iterate_number_count, iterate_cell_count, max_iters
     if timeout:
         timeout_time=time.time()+timeout
+    #verbose=True #************
+    grid_givens=grid.copy()
+    # givens - the grid is a set of given numbers to keep and iterate around
     success = False
     total_solutions=0
     solution_grids_found=[]
@@ -544,7 +581,7 @@ def real_iterate_multi(timeout=None):
     next_step = "starting"
     while keep_iterating:
         # let's start loop off
-        # print("next step",next_step)
+        #print("next step",next_step)
         if next_step == "ascend":
             if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
                 cell_iter_no += 1
@@ -562,75 +599,89 @@ def real_iterate_multi(timeout=None):
                 # got as far as end cell - complete
                 total_solutions+=1
                 print(f"solution found --- number {total_solutions}  cell  number {cell_iter_no}")
-                #print (grid)
+                print (grid)
                 solution_grids_found.append(grid)
+                next_step="descend"
+                if total_solutions>max_solutions:
+                    break
 
         if next_step == "descend":
-            grid[rc] = 0
+            if grid_givens[rc]==0:
+                grid[rc] = 0
             cell_iter_no -= 1
             if cell_iter_no < 0:
                 next_step = "EXHAUSTED"
                 break
 
         rc = row_col[cell_iter_no]
-        # print ("rc",rc)
+        #print ("rc",rc)
 
-        if next_step == "ascend" or next_step == "starting":
-            max_nums, shapes = iter_shapes[cell_iter_no]
-            nums_avail = list(range(1, max_nums + 1))
-            for shape in shapes:
-                this_num = grid[shape]
-                if this_num in nums_avail:
-                    nums_avail.remove(this_num)
-            numbers_to_try_stack[cell_iter_no] = nums_avail
+        if grid_givens[rc] and next_step=="starting":
+            next_step="ascend"
 
-        elif next_step == "descend":
-            max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
-            nums_avail = numbers_to_try_stack[cell_iter_no]
+        if grid_givens[rc]==0:
+            #only do the iterate part if it's not a 'given' -- ie its blank
 
-        # now we actually iterate do we?
-        # print ("where we're at",cell_iter_no,nums_avail)
+            if next_step == "ascend" or next_step == "starting":
+                max_nums, shapes = iter_shapes[cell_iter_no]
+                nums_avail = list(range(1, max_nums + 1))
+                for shape in shapes:
+                    this_num = grid[shape]
+                    if this_num in nums_avail:
+                        nums_avail.remove(this_num)
+                numbers_to_try_stack[cell_iter_no] = nums_avail
 
-        if not nums_avail:
-            # run out of numbers for cell, retreat
-            next_step = "descend"
-        else: #keep trying numbers in this cell
-            num_to_try = nums_avail.pop(0)
-            numbers_to_try_stack[cell_iter_no] = nums_avail
+            elif next_step == "descend":
+                max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
+                nums_avail = numbers_to_try_stack[cell_iter_no]
 
-            grid[rc] = num_to_try
-            iterate_number_count += 1
-            # now let's check if valid
-            valid = True
-            neighbours = iter_nonshape_neighbours[cell_iter_no]
-            for nb in neighbours:
-                if grid[nb] == num_to_try:
-                    valid = False
-                    break
+            # now we actually iterate do we?
+            # print ("where we're at",cell_iter_no,nums_avail)
 
-            # if ok - ascend a level in iteration
-            if valid:
-                if timeout:
-                    ok_continue=(time.time()<timeout_time)
+            if not nums_avail:
+                # run out of numbers for cell, retreat
+                next_step = "descend"
+            else: #keep trying numbers in this cell
+                num_to_try = nums_avail.pop(0)
+                numbers_to_try_stack[cell_iter_no] = nums_avail
+
+                grid[rc] = num_to_try
+                iterate_number_count += 1
+                # now let's check if valid
+                valid = True
+                neighbours = iter_nonshape_neighbours[cell_iter_no]
+                for nb in neighbours:
+                    if grid[nb] == num_to_try:
+                        valid = False
+                        break
+
+                # if ok - ascend a level in iteration
+                if valid:
+                    if timeout:
+                        ok_continue=(time.time()<timeout_time)
+                    else:
+                        ok_continue=(iterate_cell_count<max_iters)
+                    timed_out=not ok_continue
+                    if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
+                        iterate_cell_count += 1
+                        next_step = "ascend"
+                        if iterate_cell_count % 10000 == 0:
+                            elapsed = time.time() - start_time
+                            if not elapsed:
+                                rate = 0
+                            else:
+                                rate = iterate_cell_count / elapsed
+                            print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
+                                  "rate", rate)
+
                 else:
-                    ok_continue=(iterate_cell_count<max_iters)
-                timed_out=not ok_continue
-                if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
-                    iterate_cell_count += 1
-                    next_step = "ascend"
-                    if iterate_cell_count % 10000 == 0:
-                        elapsed = time.time() - start_time
-                        if not elapsed:
-                            rate = 0
-                        else:
-                            rate = iterate_cell_count / elapsed
-                        print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
-                              "rate", rate)
+                    # doesn't work try next number
+                    next_step = "inc_number"
+                    grid[rc] = 0
 
-            else:
-                # doesn't work try next number
-                next_step = "inc_number"
-                grid[rc] = 0
+        else:
+            pass
+            #print(f"skipped {rc}")
 
         # this is end of while loop I think
 
@@ -640,8 +691,10 @@ def real_iterate_multi(timeout=None):
     if total_solutions==1:
         success=True
 
+    if timed_out:
+        total_solutions=-1
 
-    return success, timed_out,
+    return total_solutions
 
 
 def create_iterate_lookups():
@@ -677,7 +730,7 @@ if __name__ == '__main__':
     num_rows = 6   #7  # 6 or 10
 
     #settings
-    random.seed(12345) #***FOR A BIT OF PREDICTABILITY
+    random.seed(1234566) #***FOR A BIT OF PREDICTABILITY
     eliminate_fatal_shapes = True
     verbose = False
     max_iters = 1e6 #1e8  # 1e99
@@ -1073,7 +1126,10 @@ if __name__ == '__main__':
             else:
 
                 # success,timed_out = real_iterate()
-                success, timed_out = real_iterate_multi()
+                success, timed_out = real_iterate()
+                #TODO - need to change function so it clearly returns how many solutions or at least whether 1 or more
+                #TODO first time you run it, only need it to be at least 1, then set that solution as the base
+                #TODO then next up you need to run the solver, knowing what the givens are -- don't think I've got that yet
 
             #print ("WAS IT A SUCCESS?",success)
 
@@ -1093,6 +1149,7 @@ if __name__ == '__main__':
                 success_count += 1
                 single_cell_success_tracker.append(single_cell_count)
 
+
                 print(grid)
                 print(grid_shapes)
 
@@ -1108,6 +1165,48 @@ if __name__ == '__main__':
                         success_shape_count[rebased_shape] += 1
                     else:
                         success_shape_count[rebased_shape] = 1
+
+
+                def remove_numbers(grid,number_to_remove=1):
+                    max_cells=num_rows*num_cols-1
+
+                    removed=0
+                    while removed<number_to_remove:
+                        start_point = random.randint(0, max_cells)
+                        start_point+=1
+                        if start_point>max_cells:
+                            start_point=0
+                        r=start_point//num_cols
+                        c=start_point%num_cols
+                        if grid[r,c]:
+                            grid[r,c]=0
+                            removed+=1
+                    return grid
+
+                ##now let's try to come up with single answer?
+                puzzle_set=True
+                if puzzle_set:
+                    print ("******PRUNING!....")
+                    #let's remove numbers on a loop until we no longer get a single solution#
+                    keep_removing=True
+                    grid = remove_numbers(grid, 8)
+                    while keep_removing:
+                        last_known_unique_soln=grid.copy()
+                        grid=remove_numbers(grid,3)
+                        print ("Removed 3**")
+                        print(grid)
+                        result_successes = real_iterate_multi()
+                        print(grid)
+                        if result_successes>1:
+                            break
+                    print ("**stop")
+                    print (last_known_unique_soln)
+
+
+
+
+
+
 
             else:
                 single_cell_fail_tracker.append(single_cell_count)
@@ -1128,33 +1227,7 @@ if __name__ == '__main__':
 
 
             # now numbers
-            def display_numbers(zero_override=None):
-                screen.tracer(1)
-                pen.left(90)
-                pen.up()
-                pen.setpos(start_coords)
-                horiz_offset = cell_draw_size / 2
-                vert_offset = cell_draw_size * .9
-                pen.forward(horiz_offset)  # centre horizontally
-                pen.right(90)
-                screen.tracer(0)
 
-                pen.forward(vert_offset)  # vertical adjustment
-                pen.left(90)
-                for r in range(num_rows):
-                    for c in range(num_cols):
-                        if grid[r, c] != 0:
-                            pen.write(grid[r, c], align="center", font=("Arial", 20, "normal"))
-                        elif zero_override:
-                            pen.write(zero_override, align="center", font=("Arial", 20, "normal"))
-
-                        pen.forward(cell_draw_size)
-                    pen.right(90)
-                    pen.forward(cell_draw_size)
-                    pen.left(90)
-                    pen.backward(row_width + cell_draw_size)
-
-                screen.tracer(0)
 
 
             zero_override = "X" if not success and not timed_out  else None
