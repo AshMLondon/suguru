@@ -726,11 +726,11 @@ if __name__ == '__main__':
     #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 8   #9  # 8 or 13
-    num_rows = 6   #7  # 6 or 10
+    num_cols = 9   #9  # 8 or 13
+    num_rows = 7   #7  # 6 or 10
 
     #settings
-    random.seed(1234566) #***FOR A BIT OF PREDICTABILITY
+    #random.seed(1234566) #***FOR A BIT OF PREDICTABILITY
     eliminate_fatal_shapes = True
     verbose = False
     max_iters = 1e6 #1e8  # 1e99
@@ -1196,6 +1196,14 @@ if __name__ == '__main__':
                         print ("Removed 3**")
                         print(grid)
                         result_successes = real_iterate_multi()
+
+                        # TODO probably what I need to do here is:
+                        # more sophisticated way of removing numbers
+                        # make sure to remove evenly across the shapes so you don't end up with some empty and some stacked
+                        #or even, once you've found a full solution, reset back to empty grid and slowly fill it with numbers from the real solution (shape by shape) until it is uniquely solveable
+
+
+
                         print(grid)
                         if result_successes>1:
                             break
