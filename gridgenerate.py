@@ -562,7 +562,7 @@ def real_iterate(timeout=None):
 
     return success, timed_out
 
-def real_iterate_multi(timeout=None,max_solutions=2):
+def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
     #Iterating solver -- can find multiple solutions
 
     global iterate_number_count, iterate_cell_count, max_iters
@@ -600,7 +600,7 @@ def real_iterate_multi(timeout=None,max_solutions=2):
                 total_solutions+=1
                 print(f"solution found --- number {total_solutions}  cell  number {cell_iter_no}")
                 print (grid)
-                solution_grids_found.append(grid)
+                solution_grids_found.append(grid.copy())
                 next_step="descend"
                 if total_solutions>max_solutions:
                     break
@@ -694,7 +694,10 @@ def real_iterate_multi(timeout=None,max_solutions=2):
     if timed_out:
         total_solutions=-1
 
-    return total_solutions
+    if return_grids:   #return a second variable of the grids found?? default=No
+        return total_solutions, solution_grids_found
+    else:
+        return total_solutions
 
 
 def create_iterate_lookups():
@@ -726,7 +729,7 @@ if __name__ == '__main__':
     #TODO eventually use AI to predict if a grid is solveable!!
 
     #global variables used by generator functions
-    num_cols = 9   #9  # 8 or 13
+    num_cols = 10   #9  # 8 or 13
     num_rows = 7   #7  # 6 or 10
 
     #settings
@@ -736,8 +739,8 @@ if __name__ == '__main__':
     max_iters = 1e6 #1e8  # 1e99
     #timeout=4
     outer_loop = True
-    stop_on_success = False #True #False
-    grids_to_try = 1  # if not stop on success how long to continue
+    stop_on_success = True #False #True #False
+    grids_to_try = 5  # if not stop on success how long to continue
     single_cell_stop = True
     via_api = False #True
 
@@ -1183,9 +1186,10 @@ if __name__ == '__main__':
                             removed+=1
                     return grid
 
+                ##################################
                 ##now let's try to come up with single answer?
-                puzzle_set=True
-                if puzzle_set:
+                puzzle_set="buildup"
+                if puzzle_set=="reduce":
                     print ("******PRUNING!....")
                     #let's remove numbers on a loop until we no longer get a single solution#
                     keep_removing=True
@@ -1209,6 +1213,59 @@ if __name__ == '__main__':
                             break
                     print ("**stop")
                     print (last_known_unique_soln)
+
+                if puzzle_set=="buildup":
+                    print("bottom up buildup")
+                    solution_grid=grid.copy()
+                    grid = np.zeros((num_rows, num_cols), dtype=int)
+                    starting_givens=10
+                    max_cells = num_rows * num_cols - 1
+                    added=0
+                    while added<starting_givens:
+                        cell_to_add=random.randint(0, max_cells)
+                        r = cell_to_add // num_cols
+                        c = cell_to_add % num_cols
+                        if grid[r, c]==0:
+                            grid[r,c]=solution_grid[r,c]
+                            added+=1
+
+                    keep_going=True
+
+                    #now keep building up the grid one number at a time until uniquely solveable
+                    while keep_going:
+
+                        #now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
+                        grid_to_solve=grid.copy()
+                        result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True)
+                        print ("solutions: ",result_successes)
+                        grid=grid_to_solve
+                        if result_successes>1:
+                            print (grids_found)
+                            print (np.array_equal(grids_found[0],solution_grid))
+                            #if more than one solution work out the 'difference' between them
+                            diff=(grids_found[1] - solution_grid)  #subtract to find which elements are not same
+                            print (diff)
+                            diff_loc=np.argwhere(diff) #just give locations of elements that are non-zero (ie weren't same)
+                            print (diff_loc)
+                            #now use one of locations to add the next number into the grid
+                            cell_to_add=(diff_loc[0,0],diff_loc[0,1])
+                            print (cell_to_add)
+                            grid[cell_to_add]=solution_grid[cell_to_add]
+                        else:
+                            print ("success")
+                            keep_going=False
+
+                    display_numbers()
+                    turtle.done()
+
+
+
+
+
+
+
+
+
 
 
 
