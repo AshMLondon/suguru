@@ -13,8 +13,10 @@ from pprint import pprint
 #global flags
 import helper_functions
 
+
 verbose = False
 display_build = False
+single_cell_stop = True
 
 #set this outside __MAIN__ test to initialise
 standard_shapes_tuple=[
@@ -111,6 +113,33 @@ def translated_shapes(shape_in):
             ##shapes_out.append((shape_array_switched * tr).tolist())
         return shapes_out
 
+def next_free_space_spiral(start_coord):
+    # this function spirals outwards from starting coord (r,c) until it finds an empty cell
+
+    if grid_shapes[start_coord] == 0:
+        return start_coord
+        # if starting point already is blank
+
+    move_coord_4 = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    new_point = start_coord
+    step_size = 0
+
+    for i in range(max(num_cols, num_rows)):
+        any_in_bounds = False
+        for move in move_coord_4:
+            if move[0] == 0:
+                step_size += 1  # increase step size every other step, that seems to make a spiral
+            for steps in range(step_size):
+
+                new_point = add_coords(new_point, move)
+                if in_bounds(new_point):
+                    any_in_bounds = True
+                    if grid_shapes[new_point] == 0:
+                        return new_point
+
+        if not any_in_bounds:
+            return None  # spiral reached outside so stop
+
 def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=False, funky_shuffle=True):
     global start_point, move_coord, count, val, shape, shape_number, new_point, move, shape_permutations, valid, colour, num_rows,num_cols
     # set start coordinates
@@ -158,32 +187,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     single_cell_count=0
     single_cell_max=random.randint(0,3)
 
-    def next_free_space_spiral(start_coord):
-        # this function spirals outwards from starting coord (r,c) until it finds an empty cell
 
-        if grid_shapes[start_coord] == 0:
-            return start_coord
-            # if starting point already is blank
-
-        move_coord_4 = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        new_point = start_coord
-        step_size = 0
-
-        for i in range(max(num_cols, num_rows)):
-            any_in_bounds = False
-            for move in move_coord_4:
-                if move[0] == 0:
-                    step_size += 1  # increase step size every other step, that seems to make a spiral
-                for steps in range(step_size):
-
-                    new_point = add_coords(new_point, move)
-                    if in_bounds(new_point):
-                        any_in_bounds = True
-                        if grid_shapes[new_point] == 0:
-                            return new_point
-
-            if not any_in_bounds:
-                return None  # spiral reached outside so stop
 
     finished = False
     for loops in range(50):  # was 500 -- stopping to try spiral
@@ -339,7 +343,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
                                             if single_cell_count>single_cell_max:  #allow *some*
                                                 #TODO check how close?
                                                 valid=False
-                                                print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
+                                                #print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
                                                 break
 
                                 #print (f"shape number {shape_number}-- valid {valid} -- shape coords {shape_try_adjusted} ** affected cells: {affected_cells}")
@@ -484,7 +488,7 @@ def real_iterate(timeout=None):
                               "time", elapsed, "rate", rate)
             else:
                 # got as far as end cell - complete
-                print("*complete*")
+                #print("*complete*")
                 success = True
                 break
 
@@ -741,7 +745,7 @@ if __name__ == '__main__':
     outer_loop = True
     stop_on_success = True #False #True #False
     grids_to_try = 5  # if not stop on success how long to continue
-    single_cell_stop = True
+
     via_api = False #True
 
     #variables
