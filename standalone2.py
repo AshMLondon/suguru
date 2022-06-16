@@ -28,9 +28,9 @@ def gen_multi_grids_getstats():
     #generate multiple grids and get stats on how many goes it took
 
     #global initial variables
-    gridgen.num_rows=4 #5
-    gridgen.num_cols=5  #7
-    gridgen.verbose=False
+    gridgen.num_rows=6 #5
+    gridgen.num_cols=8  #7
+    gridgen.verbose = False
     gridgen.display_build=False
 
 
@@ -41,10 +41,14 @@ def gen_multi_grids_getstats():
     number_to_loop=1
     for loop in range(number_to_loop):
         start_time = time()
+
         gridgen.create_blank_grids()
         gridgen.gen_predet_shapes(turtle_fill=False)
 
         gridgen.shape_coords = gridgen.get_shape_coords()
+        print (gridgen.grid_shapes)
+
+
 
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
@@ -54,43 +58,21 @@ def gen_multi_grids_getstats():
         elapsed= round(time()-start_time,2)
 
         print (f"#{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(gridgen.grid)
         counts.append(gridgen.iterate_cell_count)
 
-        start_time = time()
-        print(gridgen.row_col)
-        old_ggrowcol=gridgen.row_col.copy()
-        gridgen.row_col={}
-        grid_to_reuse=gridgen.grid_shapes.copy()
-        gridgen.create_blank_grids()
-        spiral_coords=[]
-        start_coord=(2,3)
-        new_coord=start_coord
-        keep_spiraling=True
-        counter=0
+        ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
 
-        while keep_spiraling:
-            new_coord=gridgen.next_free_space_spiral(new_coord)
-            #print(new_coord)
-            if new_coord:
-                spiral_coords.append(new_coord)
-                gridgen.grid_shapes[new_coord]=99
-                gridgen.row_col[counter]=new_coord
-                counter+=1
-            else:
-                keep_spiraling=False
-        print (len(spiral_coords), spiral_coords)
-        #gridgen.row_col=old_ggrowcol
-        print (gridgen.row_col)
-        gridgen.create_blank_grids()
-        gridgen.grid_shapes=grid_to_reuse.copy()
-        print (gridgen.grid_shapes)
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
 
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
 
-        success, timedout = gridgen.real_iterate()
+        success, timedout = gridgen.real_iterate_least()
         elapsed = round(time() - start_time, 2)
         print(f"V2S #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(gridgen.grid)
 
 
         # print (gridgen.grid_shapes)

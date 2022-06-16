@@ -412,10 +412,11 @@ def in_bounds(coord):
     return valid
 
 
-def create_blank_grids():
+def create_blank_grids(values_only=False):
     global grid, grid_shapes
     grid = np.zeros((num_rows, num_cols), dtype=int)
-    grid_shapes = np.zeros((num_rows, num_cols), dtype=int)
+    if not values_only:
+        grid_shapes = np.zeros((num_rows, num_cols), dtype=int)
 
 def array2string(array_in):
     return np.array2string(array_in)
@@ -612,7 +613,7 @@ def real_iterate_least(timeout=None):
     keep_iterating = True
     timed_out = False
     next_step = "starting"
-    cells_tried_stack=[]
+    cells_tried_stack={}
     while keep_iterating:
         # let's start loop off
         # print("next step",next_step)
@@ -637,6 +638,7 @@ def real_iterate_least(timeout=None):
         #rc = row_col[cell_iter_no]
         # print ("rc",rc)
         grid_possibles,least_possible = find_least_possible_values()
+        #print (cell_iter_no,least_possible,iterate_cell_count,grid_possibles)
 
         if next_step == "ascend" or next_step == "starting":
             #find the next cell to try -- this time by finding cell with least possibilities
@@ -661,10 +663,11 @@ def real_iterate_least(timeout=None):
         else:
             num_to_try = nums_avail.pop(0)
             numbers_to_try_stack[cell_iter_no] = nums_avail
+            grid[rc] = num_to_try
 
             #SKIPPING this bit - as we already have weeded down to only legit numbers to choose
 
-            # grid[rc] = num_to_try
+
             # iterate_number_count += 1
             # # now let's check if valid
             valid = True
@@ -683,21 +686,14 @@ def real_iterate_least(timeout=None):
                 timed_out=not ok_continue
 
                 if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
-                    iterate_cell_count += 1
+                    #iterate_cell_count += 1
                     next_step = "ascend"
-                    if iterate_cell_count % 10000 == 0:
-                        elapsed = time.time() - start_time
-                        if not elapsed:
-                            rate = 0
-                        else:
-                            rate = iterate_cell_count / elapsed
-                        print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
-                              "rate", rate)
+
 
             else:
                 # doesn't work try next number
                 next_step = "inc_number"
-                print "*******SHOULDN'T BE HERE********"
+                print ("*******SHOULDN'T BE HERE********")
                 grid[rc] = 0
 
         # this is end of while loop I think
