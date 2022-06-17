@@ -601,6 +601,46 @@ def find_least_possible_values():
 
     return (grid_possibles,min_location)
 
+def find_least_possible_values2():
+    global linked_cells_lookup
+    #was create_grid_pencils in the earlier suguru file
+    ##TODO -- replace some of this with the pre-calculated list of linked cells
+    ##BUT ahead of that - need to save into that list the numbers available for a cell based on how big it's shape is
+    #  add to same dictionary as I've just created
+
+
+    grid_possibles = {}
+    min_possibles=99
+    min_location=[]
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r, c] != 0:
+                grid_possibles[r, c] = []
+            else:
+                #use lookup
+                linked_cells, numbers_available_ref = linked_cells_lookup[(r,c)]
+                numbers_available=numbers_available_ref.copy()
+
+                # first find out which shape
+                # this_shape = grid_shapes[r, c]
+                # this_shape_coords = shape_coords[this_shape]
+                # shape_size = len(this_shape_coords)
+                # numbers_available = list(range(1, shape_size + 1))
+
+                for cell in linked_cells:
+                    # print ("*CELL*",cell)
+                    if grid[cell] in numbers_available:
+                        numbers_available.remove(grid[cell])
+
+                grid_possibles[(r, c)] = numbers_available
+                possibles_count=len(numbers_available)
+                if possibles_count<min_possibles:
+                    min_possibles=possibles_count
+                    min_location=(r,c)
+
+
+    return (grid_possibles,min_location)
+
 
 def real_iterate_least(timeout=None):
     # trying version of real iterate which chooses the cell to iterate based on which has least options
@@ -703,6 +743,134 @@ def real_iterate_least(timeout=None):
 
     return success, timed_out
 
+def real_iterate_least2(timeout=None):
+    # trying version of real iterate which chooses the cell to iterate based on which has least options
+    global iterate_number_count, iterate_cell_count, max_iters, linked_cells_lookup
+    if timeout:
+        timeout_time=time.time()+timeout
+    success = False
+    numbers_to_try_stack = {}
+    cell_iter_no = 0
+    keep_iterating = True
+    timed_out = False
+    next_step = "starting"
+    cells_tried_stack={}
+
+    ##let's precalculate all the cell addresses that are linked to any individual cell
+    # so a combo of cells in the same shape and neighbours (de-duplicated)
+
+
+    linked_cells_lookup={}
+
+    for r in range(num_rows):
+        for c in range(num_cols):
+
+            #start with neighbours
+            these_linked_cells = get_neighbours(r, c)
+
+            # now add non duplicate cells from shape
+            this_shape = grid_shapes[r, c]
+            this_shape_coords = shape_coords[this_shape]
+            numbers_available = list(range(1,len(this_shape_coords)+1))
+
+            for cell in this_shape_coords:
+                if cell not in these_linked_cells and cell!=(r,c):
+                    these_linked_cells.append(cell)
+
+            linked_cells_lookup[(r,c)]=(these_linked_cells,numbers_available)
+
+    print (linked_cells_lookup)
+
+
+    while keep_iterating:
+        # let's start loop off
+        # print("next step",next_step)
+        if next_step == "ascend":
+            if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
+                cell_iter_no += 1
+                iterate_cell_count += 1
+
+            else:
+                # got as far as end cell - complete
+                #print("*complete*")
+                success = True
+                break
+
+        if next_step == "descend":
+            grid[rc] = 0
+            cell_iter_no -= 1
+            if cell_iter_no < 0:
+                next_step = "FAIL"
+                break
+
+        #rc = row_col[cell_iter_no]
+        # print ("rc",rc)
+        grid_possibles,least_possible = find_least_possible_values2()
+        #print ("#",cell_iter_no,"LP:",least_possible,"Count:",iterate_cell_count,grid_possibles)
+
+        if next_step == "ascend" or next_step == "starting":
+            #find the next cell to try -- this time by finding cell with least possibilities
+
+            rc=least_possible
+            nums_avail = grid_possibles[rc]
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+            cells_tried_stack[cell_iter_no]= rc
+
+
+        elif next_step == "descend":
+            #max_nums, shapes = iter_shapes[cell_iter_no]  # TODO do we need shapes now?
+            nums_avail = numbers_to_try_stack[cell_iter_no]
+            rc = cells_tried_stack[cell_iter_no]
+
+        # now we actually iterate do we?
+        # print ("where we're at",cell_iter_no,nums_avail)
+
+        if not nums_avail:
+            # run out of numbers for cell, retreat
+            next_step = "descend"
+        else:
+            num_to_try = nums_avail.pop(0)
+            numbers_to_try_stack[cell_iter_no] = nums_avail
+            grid[rc] = num_to_try
+            #print (grid)
+
+            #SKIPPING this bit - as we already have weeded down to only legit numbers to choose
+
+
+            # iterate_number_count += 1
+            # # now let's check if valid
+            valid = True
+            # neighbours = iter_nonshape_neighbours[cell_iter_no]
+            # for nb in neighbours:
+            #     if grid[nb] == num_to_try:
+            #         valid = False
+            #         break
+
+            # if ok - ascend a level in iteration
+            if valid:
+                if timeout:
+                    ok_continue=(time.time()<timeout_time)
+                else:
+                    ok_continue=(iterate_cell_count<max_iters)
+                timed_out=not ok_continue
+
+                if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
+                    #iterate_cell_count += 1
+                    next_step = "ascend"
+
+
+            else:
+                # doesn't work try next number
+                next_step = "inc_number"
+                print ("*******SHOULDN'T BE HERE********")
+                grid[rc] = 0
+
+        # this is end of while loop I think
+
+    # print(grid)
+    # END OF ITERATION
+
+    return success, timed_out
 
 def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
     #Iterating solver -- can find multiple solutions

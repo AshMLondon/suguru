@@ -2,7 +2,7 @@ import gridgenerate as gridgen
 import database_functions as db
 import numpy as np
 from time import time
-import requests, pprint
+import requests, pprint, random, cProfile
 
 
 def solve_via_api(grid_to_try, max_iters=None):
@@ -39,6 +39,9 @@ def gen_multi_grids_getstats():
     counts=[]
     gridgen.max_iters = 1e6
     number_to_loop=1
+
+
+
     for loop in range(number_to_loop):
         start_time = time()
 
@@ -65,14 +68,24 @@ def gen_multi_grids_getstats():
 
         start_time = time()
         gridgen.create_blank_grids(values_only=True)
-
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
-
         success, timedout = gridgen.real_iterate_least()
         elapsed = round(time() - start_time, 2)
-        print(f"V2S #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
         print(gridgen.grid)
+
+        ##NOW TRY A THIRD ATTEMPT TO SOLVE -- hopeufully quicker
+
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
+        gridgen.iterate_cell_count = 0
+        gridgen.iterate_number_count = 0
+        success, timedout = gridgen.real_iterate_least2()
+        elapsed = round(time() - start_time, 2)
+        print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(gridgen.grid)
+
 
 
         # print (gridgen.grid_shapes)
@@ -83,5 +96,5 @@ def gen_multi_grids_getstats():
 
 
 if __name__ == '__main__':
-    gen_multi_grids_getstats()
+    cProfile.run('gen_multi_grids_getstats()',filename="speedtesting.profile")
 
