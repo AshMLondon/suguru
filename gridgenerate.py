@@ -568,6 +568,9 @@ def real_iterate(timeout=None):
     return success, timed_out
 
 def find_least_possible_values():
+    '''
+    returns dictionary of grid possibles, plus the location of cell with least possibles
+    '''
     #was create_grid_pencils in the earlier suguru file
     grid_possibles = {}
     min_possibles=99
@@ -892,6 +895,183 @@ def BROKEN_real_iterate_least2(timeout=None):
     # END OF ITERATION
 
     return success, timed_out
+
+
+def create_linked_cells_lookup():
+    linked_cells_lookup={}
+
+    for r in range(num_rows):
+        for c in range(num_cols):
+
+            #start with neighbours
+            these_linked_cells = get_neighbours(r, c)
+
+            # now add non duplicate cells from shape
+            this_shape = grid_shapes[r, c]
+            this_shape_coords = shape_coords[this_shape]
+            #numbers_available = list(range(1,len(this_shape_coords)+1))
+
+            for cell in this_shape_coords:
+                if cell not in these_linked_cells and cell!=(r,c):
+                    these_linked_cells.append(cell)
+
+            linked_cells_lookup[(r,c)]=(these_linked_cells)  #,numbers_available)
+
+    return linked_cells_lookup
+
+def find_least_possibles(grid_possibles):
+    min_possibles = 99
+    min_location = None
+    for r in range(num_rows):
+        for c in range(num_cols):
+            if grid[r,c]==0: #only check non-solved  cells
+                if len(grid_possibles[r,c])<min_possibles:
+                    min_possibles=len(grid_possibles[r,c])
+                    min_location=(r,c)
+    return min_location
+
+
+def is_grid_legit():
+    ''' assume grid has been set with values, check it's a valid solution - ie nothing broken'''
+    for r in range(num_rows):
+        for c in range(num_cols):
+            this_value=grid[r,c]
+            this_shape = grid_shapes[r, c]
+            this_shape_coords = shape_coords[this_shape]
+            for coord in this_shape_coords:
+                if grid[coord]==this_value and coord!=(r,c):
+                    return False
+            for coord in get_neighbours(r,c):
+                if grid[coord]==this_value and coord!=(r,c):
+                    return False
+
+    return True
+
+
+def new_iterate():
+    ##trying to refactor from scratch
+    print ("********STARTNEWITERATE*******")
+
+    #initialise variables, pointers and stacks
+    max_cells=num_rows*num_cols-1  #target for final iteration
+    iteration_pointer=0  # how far up in the cells we are - goes up and down and maxes out at max cells
+    iteration_cycles_counter=0  #count how many goes we need - keeps going up
+
+    iteration_cells_used_stack={}
+    values_changed_stack={}
+
+    # create lookup of all linked cells and list of max possible values
+    linked_cells_lookup=create_linked_cells_lookup()
+    # calc possible values of entire grid [existing function]
+    grid_possibles,least_possible_location=find_least_possible_values()  #use original v1 to start as not bothering with lookup if only using ths once
+    live_cell = least_possible_location
+
+    #Now starting iteration loop
+
+    while True:   #permanent loop - normally exit via return statements
+
+        # ##Assume starting a new cell
+        iteration_cycles_counter+=1
+
+
+
+        # what values are possible for this cell
+        possibles_here=grid_possibles[live_cell]
+
+        print(f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
+        print("3,3??", grid_possibles[3,3])
+        #print(values_changed_stack)
+
+        # if no values left - skip and go down
+        if possibles_here:  #so there are some
+            # pull a value
+            value_to_use=possibles_here.pop(0)
+
+            # set grid with this value
+            grid[live_cell]=value_to_use
+
+            # if this was the last cell -- exit as successful
+            if iteration_pointer==max_cells:
+                print ("SUCCESS")
+                return "success", iteration_cycles_counter
+
+            # look up linked cells
+            linked_cells_here=linked_cells_lookup[live_cell]
+
+
+            # for each linked cell
+            before_change_dict={}
+            for linked_cell in linked_cells_here:
+                # first, what *were* the possibilities -- build list of coordinate and possibilities, to save to stack
+                #only do for unsolved cells
+                if grid[linked_cell]==0:
+                    this_link_possibilities=grid_possibles[linked_cell]
+                    before_change_dict[linked_cell]=this_link_possibilities.copy() #try a copy so it doesn't keep changing afterwards
+
+                    # update possibilities - remove current value if appears there
+                    if value_to_use in this_link_possibilities:
+                        this_link_possibilities.remove(value_to_use)
+
+
+            # ##prepare to go up a level
+            print (grid)
+            # push current cell coordinates to stack
+            iteration_cells_used_stack[iteration_pointer]=live_cell
+            # push updated cells (linked cells) to stack  -- this is their original value before change
+            print (f"Saving: IP {iteration_pointer},  {before_change_dict}")
+            print()
+            values_changed_stack[iteration_pointer]=before_change_dict
+            # [push remaining values for this cell to stack -- do we need to?? GUESSING NO]
+
+            # find cell with least possibles - set as new coord, increment counter
+            live_cell=find_least_possibles(grid_possibles)
+            iteration_pointer+=1
+            # continue loop
+
+
+        else: #means there were no possibles
+            # ##prepare to go down
+            # if no cells left -- exit as failure
+            if iteration_pointer==0:
+                print ("FAIL - no cells left")
+                return "failed", iteration_cycles_counter
+            # decrease counter
+            iteration_cells_used_stack[iteration_pointer]="--"  #blank out - don't really need to
+            iteration_pointer-=1
+            #reset grid value back to 0 - unsolved
+            grid[live_cell]=0
+            # pull coord from stack - back to where we were last time - this is new coord
+            live_cell=iteration_cells_used_stack[iteration_pointer]
+
+            # pull original coords + values of linked cells from stack
+            before_changes_dict=values_changed_stack[iteration_pointer]
+            # reset those cells in possibles list back to original state
+            for cell,possibles_here in before_changes_dict.items():
+                grid_possibles[cell]=possibles_here
+            # continue loop
+
+
+        #debug -- check against full calculated set of grid possibles
+        # full_calc_possibles,least_val=find_least_possible_values()
+        # print (full_calc_possibles)
+        # for ref,full in full_calc_possibles.items():
+        #     if grid_possibles[ref]!=full:
+        #         print (f"ref {ref}")
+
+
+
+    # end of loop - but shouldn't get here
+
+    return "something weird",iteration_cycles_counter
+
+
+
+
+
+
+
+
+
 
 def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
     #Iterating solver -- can find multiple solutions

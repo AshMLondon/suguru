@@ -28,8 +28,8 @@ def gen_multi_grids_getstats():
     #generate multiple grids and get stats on how many goes it took
 
     #global initial variables
-    gridgen.num_rows=5 #5
-    gridgen.num_cols=4  #7
+    gridgen.num_rows=4 #5
+    gridgen.num_cols=5  #7
     gridgen.verbose = False
     gridgen.display_build=False
 
@@ -40,7 +40,10 @@ def gen_multi_grids_getstats():
     gridgen.max_iters = 1e6
     number_to_loop=1
 
-    random.seed(456)
+    pick_seed=random.randint(1,10000)
+    pick_seed=7714
+    print (f"seed {pick_seed}")
+    random.seed(pick_seed)
 
 
     for loop in range(number_to_loop):
@@ -63,6 +66,7 @@ def gen_multi_grids_getstats():
 
         print (f"#{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
         print(gridgen.grid)
+        print("Legit? ",gridgen.is_grid_legit())
         counts.append(gridgen.iterate_cell_count)
 
         ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
@@ -71,10 +75,11 @@ def gen_multi_grids_getstats():
         gridgen.create_blank_grids(values_only=True)
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
-        success, timedout = gridgen.real_iterate_least()
+        success, timedout = gridgen.real_iterate_least(timeout=5)
         elapsed = round(time() - start_time, 2)
         print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
         print(gridgen.grid)
+        print("Legit? ", gridgen.is_grid_legit())
 
         ##NOW TRY A THIRD ATTEMPT TO SOLVE -- hopeufully quicker
 
@@ -82,10 +87,11 @@ def gen_multi_grids_getstats():
         gridgen.create_blank_grids(values_only=True)
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
-        success, timedout = gridgen.real_iterate_least2()
+        success,iterations = gridgen.new_iterate()
         elapsed = round(time() - start_time, 2)
-        print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(f"Least Solver- #{loop}, cells iterated {iterations:,}  success? {success}, timedout? {timedout},   time {elapsed}")
         print(gridgen.grid)
+        print("Legit? ", gridgen.is_grid_legit())
 
 
 
@@ -97,5 +103,6 @@ def gen_multi_grids_getstats():
 
 
 if __name__ == '__main__':
-    cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
+    #cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
+    gen_multi_grids_getstats()
 
