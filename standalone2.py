@@ -28,8 +28,8 @@ def gen_multi_grids_getstats():
     #generate multiple grids and get stats on how many goes it took
 
     #global initial variables
-    gridgen.num_rows=6 #5
-    gridgen.num_cols=8  #7
+    gridgen.num_rows=5 #5
+    gridgen.num_cols=4  #7
     gridgen.verbose = False
     gridgen.display_build=False
 
@@ -40,6 +40,7 @@ def gen_multi_grids_getstats():
     gridgen.max_iters = 1e6
     number_to_loop=1
 
+    random.seed(456)
 
 
     for loop in range(number_to_loop):
@@ -96,5 +97,5 @@ def gen_multi_grids_getstats():
 
 
 if __name__ == '__main__':
-    cProfile.run('gen_multi_grids_getstats()',filename="speedtesting.profile")
+    cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
 

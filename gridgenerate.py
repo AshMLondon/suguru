@@ -604,9 +604,7 @@ def find_least_possible_values():
 def find_least_possible_values2():
     global linked_cells_lookup
     #was create_grid_pencils in the earlier suguru file
-    ##TODO -- replace some of this with the pre-calculated list of linked cells
-    ##BUT ahead of that - need to save into that list the numbers available for a cell based on how big it's shape is
-    #  add to same dictionary as I've just created
+    #but now has pre-calculated list of linked cells
 
 
     grid_possibles = {}
@@ -743,7 +741,10 @@ def real_iterate_least(timeout=None):
 
     return success, timed_out
 
-def real_iterate_least2(timeout=None):
+def BROKEN_real_iterate_least2(timeout=None):
+    #this doesn't work, but am going to try refactoring a new version instead
+    #commit called "iterate 2 - slightly faster" has a version that is still working
+    ##########
     # trying version of real iterate which chooses the cell to iterate based on which has least options
     global iterate_number_count, iterate_cell_count, max_iters, linked_cells_lookup
     if timeout:
@@ -805,13 +806,14 @@ def real_iterate_least2(timeout=None):
 
         #rc = row_col[cell_iter_no]
         # print ("rc",rc)
-        grid_possibles,least_possible = find_least_possible_values2()
+        if next_step=="descend" or next_step=="starting":
+            grid_possibles,least_possible = find_least_possible_values2()
         #print ("#",cell_iter_no,"LP:",least_possible,"Count:",iterate_cell_count,grid_possibles)
 
         if next_step == "ascend" or next_step == "starting":
             #find the next cell to try -- this time by finding cell with least possibilities
-
             rc=least_possible
+            print (f"rc  {rc}, cell iter no {cell_iter_no}, next step {next_step}")
             nums_avail = grid_possibles[rc]
             numbers_to_try_stack[cell_iter_no] = nums_avail
             cells_tried_stack[cell_iter_no]= rc
@@ -831,7 +833,26 @@ def real_iterate_least2(timeout=None):
         else:
             num_to_try = nums_avail.pop(0)
             numbers_to_try_stack[cell_iter_no] = nums_avail
-            grid[rc] = num_to_try
+            grid[rc] = num_to_try   #**TRY THE NUMBER
+
+            ##now update the possibles
+            linked_cells=linked_cells_lookup[(r,c)][0]
+            print (linked_cells)
+            min_possibles=99
+            min_location=[]
+            for cell in linked_cells:
+                print (f"cell {cell} ;;  {r},{c}")
+                if grid[cell] in grid_possibles[r,c]:
+                    grid_possibles.remove(grid[cell])
+                if len(grid_possibles[r,c])<min_possibles:
+                    min_possibles=len(grid_possibles[r,c])
+                    min_location=(r,c)
+
+            least_possible=min_location
+            print (f"done least possible: {least_possible}")
+
+
+
             #print (grid)
 
             #SKIPPING this bit - as we already have weeded down to only legit numbers to choose
