@@ -997,7 +997,7 @@ def new_iterate():
         # what values are possible for this cell
         possibles_here=grid_possibles[live_cell]
 
-        # print(f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
+        #print(f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
         # print("2/0??", grid_possibles[2,0])
         #print(values_changed_stack)
 
@@ -1034,64 +1034,72 @@ def new_iterate():
 
             # ##prepare to go up a level
             # print (grid)
-            # push current cell coordinates to stack
-            iteration_cells_used_stack[iteration_pointer]=live_cell
+            next_cell = find_least_possibles(grid_possibles)
+            if len(grid_possibles[next_cell]):  #no point in going up if going to come down again straight away
 
-            next_cell=find_least_possibles(grid_possibles)
-            if next_cell not in before_changes_dict:
-                # print("WASNT IN DICT")
-                before_changes_dict[next_cell]=grid_possibles[next_cell].copy()
-
-            # push updated cells (linked cells) to stack  -- this is their original value before change
-            # print (f"Saving: IP {iteration_pointer},  {before_changes_dict}")
-            # print()
-            values_changed_stack[iteration_pointer]=before_changes_dict
-            # [push remaining values for this cell to stack -- do we need to?? GUESSING NO]
-
-            # find cell with least possibles - set as new coord, increment counter
-            #live_cell=find_least_possibles(grid_possibles)
-            live_cell=next_cell
-            iteration_pointer+=1
-            # continue loop
+                # push current cell coordinates to stack
+                iteration_cells_used_stack[iteration_pointer]=live_cell
 
 
-        else: #means there were no possibles
-            # ##prepare to go down
-            # if no cells left -- exit as failure
-            if iteration_pointer==0:
-                print ("FAIL - no cells left")
-                return "failed", iteration_cycles_counter
-            # decrease counter
-            iteration_cells_used_stack[iteration_pointer]="--"  #blank out - don't really need to
-            iteration_pointer-=1
-            #reset grid value back to 0 - unsolved
-            grid[live_cell]=0
-            # pull coord from stack - back to where we were last time - this is new coord
-            last_live_cell=live_cell
-            live_cell=iteration_cells_used_stack[iteration_pointer]
+                # if next_cell not in before_changes_dict:
+                #     # print("WASNT IN DICT")
+                #     before_changes_dict[next_cell]=grid_possibles[next_cell].copy()
 
-            # pull original coords + values of linked cells from stack
-            before_changes_dict=values_changed_stack[iteration_pointer]
-            #print(before_changes_dict)
-            # reset those cells in possibles list back to original state
-            for cell,possibles_here in before_changes_dict.items():
-                grid_possibles[cell]=possibles_here
+                # push updated cells (linked cells) to stack  -- this is their original value before change
+                # print (f"Saving: IP {iteration_pointer},  {before_changes_dict}")
+                # print()
+                values_changed_stack[iteration_pointer]=before_changes_dict
+                # [push remaining values for this cell to stack -- do we need to?? GUESSING NO]
 
-            #if not before_changes_dict.get(live_cell):
-            ##shouldn't need this now -- have found a way to add it in to the dictionary
-            # if last_live_cell not in before_changes_dict:
-            #     grid_possibles[last_live_cell]=recalc_one_cell_possibles(last_live_cell)
-            #     print ("**MISSING CELL INFO**", grid_possibles[last_live_cell])
+                # find cell with least possibles - set as new coord, increment counter
+                #live_cell=find_least_possibles(grid_possibles)
+                live_cell=next_cell
+                iteration_pointer+=1
+                # continue loop
+                continue
 
-            # continue loop
+            else:
+                pass
+                #print ("**skipping going up to no-possibles cell")
 
 
-        #debug -- check against full calculated set of grid possibles
-        # full_calc_possibles,least_val=find_least_possible_values()
-        # print (full_calc_possibles)
-        # for ref,full in full_calc_possibles.items():
-        #     if grid_possibles[ref]!=full:
-        #         print (f"ref {ref}")
+        ##***ARRIVING HERE (beyond continue) means there were no possibles
+        # ##prepare to go down
+        # if no cells left -- exit as failure
+        if iteration_pointer==0:
+            print ("FAIL - no cells left")
+            return "failed", iteration_cycles_counter
+        # decrease counter
+        iteration_cells_used_stack[iteration_pointer]="--"  #blank out - don't really need to
+        iteration_pointer-=1
+        #reset grid value back to 0 - unsolved
+        grid[live_cell]=0
+        # pull coord from stack - back to where we were last time - this is new coord
+        last_live_cell=live_cell
+        live_cell=iteration_cells_used_stack[iteration_pointer]
+
+        # pull original coords + values of linked cells from stack
+        before_changes_dict=values_changed_stack[iteration_pointer]
+        #print(before_changes_dict)
+        # reset those cells in possibles list back to original state
+        for cell,possibles_here in before_changes_dict.items():
+            grid_possibles[cell]=possibles_here
+
+
+        ##shouldn't need this now -- have found a way to add it in to the dictionary
+        if last_live_cell not in before_changes_dict:
+            grid_possibles[last_live_cell]=recalc_one_cell_possibles(last_live_cell)
+            print ("**MISSING CELL INFO**", grid_possibles[last_live_cell])
+
+        # continue loop
+
+
+    #debug -- check against full calculated set of grid possibles
+    # full_calc_possibles,least_val=find_least_possible_values()
+    # print (full_calc_possibles)
+    # for ref,full in full_calc_possibles.items():
+    #     if grid_possibles[ref]!=full:
+    #         print (f"ref {ref}")
 
 
 
