@@ -41,7 +41,7 @@ def gen_multi_grids_getstats():
     number_to_loop=1
 
     pick_seed=random.randint(1,10000)
-    pick_seed=7714
+    #pick_seed=7714
     print (f"seed {pick_seed}")
     random.seed(pick_seed)
 
