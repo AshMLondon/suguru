@@ -967,7 +967,10 @@ def is_grid_legit():
     return True
 
 
-def new_iterate(always_wholegrid_least=False):
+def do_absolutely_nothing_just_to_test():
+    pass
+
+def new_iterate(timeout=5,always_wholegrid_least=False):
     '''
 
     :param always_wholegrid_least:  do you want to check each iteration what least possibles are across whole grid? if False just check within cells most recently linked to cell iterated
@@ -975,6 +978,8 @@ def new_iterate(always_wholegrid_least=False):
     '''
 
     print ("********START NEW ITERATE*******")
+
+    time_started=time.time()
 
     #initialise variables, pointers and stacks
     max_cells=num_rows*num_cols-1  #target for final iteration
@@ -998,13 +1003,19 @@ def new_iterate(always_wholegrid_least=False):
         # ##Assume starting a new cell -- actually no- this could be same cell next number
         iteration_cycles_counter+=1
 
-
+        #do_absolutely_nothing_just_to_test()
 
         # what values are possible for this cell
         possibles_here=grid_possibles[live_cell]
 
         if iteration_cycles_counter%100000==0:
             print (f"#{iteration_cycles_counter:,}")
+            if timeout:
+                if time.time()>time_started+timeout:
+                    #Timed Out
+                    return "timed out",iteration_cycles_counter
+
+
 
         if ni_debug:
             print (f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
@@ -1043,14 +1054,28 @@ def new_iterate(always_wholegrid_least=False):
                         #this is effectively a pointer, so changes the main grid_possibles too
 
 
-            # ##PREPARE TO GO UP AN ITERATION LEVEL
+            ##PREPARE TO GO UP AN ITERATION LEVEL
             if ni_debug:print (grid)
-            next_cell = find_least_possibles(grid_possibles)
+
+            if always_wholegrid_least:
+                next_cell = find_least_possibles(grid_possibles)
+            else:
+                #in this case just find fewest possibles in linked_cells
+                least_possibles=99
+                for cell, possibles_here in before_changes_dict.items():
+                    if len(possibles_here)<least_possibles:
+                        least_possibles=len(possibles_here)
+                        least_possible_location=cell
+                if least_possibles<99:
+                    next_cell=least_possible_location
+                else:
+                    #ok, so this time we've run out of things to change so have to do the find least possibles
+                    next_cell = find_least_possibles(grid_possibles)
+
             if len(grid_possibles[next_cell]):  #no point in going up if going to come down again straight away
 
                 # push current cell coordinates to stack
                 iteration_cells_used_stack[iteration_pointer]=live_cell
-
 
                 if next_cell not in before_changes_dict:
                     # print("WASNT IN DICT")
