@@ -38,10 +38,11 @@ def gen_multi_grids_getstats():
     # num_timeout=0
     counts=[]
     gridgen.max_iters = 1e6
-    number_to_loop=3
+    number_to_loop=1
 
     pick_seed=random.randint(1,10000)
-    pick_seed=2792
+    pick_seed=9464
+    #pick_seed=2792
     print (f"seed {pick_seed}")
     random.seed(pick_seed)
 
@@ -69,17 +70,17 @@ def gen_multi_grids_getstats():
         print("Legit? ",gridgen.is_grid_legit())
         counts.append(gridgen.iterate_cell_count)
 
-        # ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
-        ##SUPERSEDED -- BETTER SOLVER!
-        # start_time = time()
-        # gridgen.create_blank_grids(values_only=True)
-        # gridgen.iterate_cell_count = 0
-        # gridgen.iterate_number_count = 0
-        # success, timedout = gridgen.real_iterate_least(timeout=5)
-        # elapsed = round(time() - start_time, 2)
-        # print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,} number count {gridgen.iterate_number_count},  success? {success}, timedout? {timedout},   time {elapsed}")
-        # print(gridgen.grid)
-        # print("Legit? ", gridgen.is_grid_legit())
+        ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
+        #SUPERSEDED -- BETTER SOLVER!
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
+        gridgen.iterate_cell_count = 0
+        gridgen.iterate_number_count = 0
+        success, timedout = gridgen.real_iterate_least(timeout=1)
+        elapsed = round(time() - start_time, 2)
+        print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,} number count {gridgen.iterate_number_count},  success? {success}, timedout? {timedout},   time {elapsed}")
+        print(gridgen.grid)
+        print("Legit? ", gridgen.is_grid_legit())
 
         ##NOW TRY A THIRD ATTEMPT TO SOLVE -- hopeufully quicker
 
@@ -103,6 +104,6 @@ def gen_multi_grids_getstats():
 
 
 if __name__ == '__main__':
-    #cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
-    gen_multi_grids_getstats()
+    cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
+    #gen_multi_grids_getstats()
 

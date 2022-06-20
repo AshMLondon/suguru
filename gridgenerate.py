@@ -967,9 +967,14 @@ def is_grid_legit():
     return True
 
 
-def new_iterate():
-    ##trying to refactor from scratch
-    print ("********STARTNEWITERATE*******")
+def new_iterate(always_wholegrid_least=False):
+    '''
+
+    :param always_wholegrid_least:  do you want to check each iteration what least possibles are across whole grid? if False just check within cells most recently linked to cell iterated
+    :return: success, no of iterations
+    '''
+
+    print ("********START NEW ITERATE*******")
 
     #initialise variables, pointers and stacks
     max_cells=num_rows*num_cols-1  #target for final iteration
@@ -986,6 +991,7 @@ def new_iterate():
     live_cell = least_possible_location
 
     #Now starting iteration loop
+    ni_debug=False #True
 
     while True:   #permanent loop - normally exit via return statements
 
@@ -997,8 +1003,12 @@ def new_iterate():
         # what values are possible for this cell
         possibles_here=grid_possibles[live_cell]
 
-        #print(f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
-        # print("2/0??", grid_possibles[2,0])
+        if iteration_cycles_counter%100000==0:
+            print (f"#{iteration_cycles_counter:,}")
+
+        if ni_debug:
+            print (f"#{iteration_cycles_counter}, itno {iteration_pointer}, live cell {live_cell}, possibles {possibles_here}")
+            #print("4/9??", grid_possibles[4,9])
         #print(values_changed_stack)
 
         # if no values left - skip and go down
@@ -1030,10 +1040,11 @@ def new_iterate():
                     # update possibilities - remove current value if appears there
                     if value_to_use in this_link_possibilities:
                         this_link_possibilities.remove(value_to_use)
+                        #this is effectively a pointer, so changes the main grid_possibles too
 
 
-            # ##prepare to go up a level
-            # print (grid)
+            # ##PREPARE TO GO UP AN ITERATION LEVEL
+            if ni_debug:print (grid)
             next_cell = find_least_possibles(grid_possibles)
             if len(grid_possibles[next_cell]):  #no point in going up if going to come down again straight away
 
@@ -1041,12 +1052,12 @@ def new_iterate():
                 iteration_cells_used_stack[iteration_pointer]=live_cell
 
 
-                # if next_cell not in before_changes_dict:
-                #     # print("WASNT IN DICT")
-                #     before_changes_dict[next_cell]=grid_possibles[next_cell].copy()
+                if next_cell not in before_changes_dict:
+                    # print("WASNT IN DICT")
+                    before_changes_dict[next_cell]=grid_possibles[next_cell].copy()
 
                 # push updated cells (linked cells) to stack  -- this is their original value before change
-                # print (f"Saving: IP {iteration_pointer},  {before_changes_dict}")
+                if ni_debug: print (f"Saving: IP {iteration_pointer},  {before_changes_dict}")
                 # print()
                 values_changed_stack[iteration_pointer]=before_changes_dict
                 # [push remaining values for this cell to stack -- do we need to?? GUESSING NO]
@@ -1059,8 +1070,10 @@ def new_iterate():
                 continue
 
             else:
-                pass
-                #print ("**skipping going up to no-possibles cell")
+                #need to reset the cells we've changed because we're not going up, as otherwise that won't happen
+                for cell,possibles_here in before_changes_dict.items():
+                    grid_possibles[cell]=possibles_here
+                if ni_debug: print ("**skipping going up to no-possibles cell -- ",next_cell)
 
 
         ##***ARRIVING HERE (beyond continue) means there were no possibles
@@ -1089,7 +1102,7 @@ def new_iterate():
         ##shouldn't need this now -- have found a way to add it in to the dictionary
         if last_live_cell not in before_changes_dict:
             grid_possibles[last_live_cell]=recalc_one_cell_possibles(last_live_cell)
-            print ("**MISSING CELL INFO**", grid_possibles[last_live_cell])
+            if ni_debug: print ("**MISSING CELL INFO**", last_live_cell, grid_possibles[last_live_cell])
 
         # continue loop
 
