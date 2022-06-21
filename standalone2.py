@@ -36,15 +36,24 @@ def gen_multi_grids_getstats():
 
     # num_success=0
     # num_timeout=0
-    counts=[]
+
     gridgen.max_iters = 1e6
-    number_to_loop=1
+    number_to_loop=20
 
     pick_seed=random.randint(1,10000)
     #pick_seed=8211
     print (f"seed {pick_seed}")
     random.seed(pick_seed)
 
+    counts = []
+    timing1=[]
+    timing2=[]
+    timing3=[]
+    results1=0
+    results2=0
+    results3=0
+
+    common_timeout=3
 
     for loop in range(number_to_loop):
         start_time = time()
@@ -53,7 +62,7 @@ def gen_multi_grids_getstats():
         gridgen.gen_predet_shapes(turtle_fill=False)
 
         gridgen.shape_coords = gridgen.get_shape_coords()
-        print (gridgen.grid_shapes)
+        #print (gridgen.grid_shapes)
 
 
 
@@ -61,25 +70,32 @@ def gen_multi_grids_getstats():
         gridgen.iterate_number_count = 0
 
         gridgen.create_iterate_lookups()
-        success, timedout = gridgen.real_iterate()
+        success, timedout = gridgen.real_iterate(timeout=common_timeout)
+        if timedout:
+            result = "timedout"
+        else:
+            result = "success" if success else "fail"
+            results1+=1
         elapsed= round(time()-start_time,2)
 
-        print (f"#{loop}, cells iterated {gridgen.iterate_cell_count:,}  success? {success}, timedout? {timedout},   time {elapsed}")
-        print(gridgen.grid)
-        print("Legit? ",gridgen.is_grid_legit())
-        counts.append(gridgen.iterate_cell_count)
+        legit = gridgen.is_grid_legit()
+        print (f"#{loop} ORIG cells iterated {gridgen.iterate_cell_count:,}  result {result}  legit? {legit}  time {elapsed},  ")
+        #print(gridgen.grid)
 
-        ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
-        #SUPERSEDED -- BETTER SOLVER!
-        start_time = time()
-        gridgen.create_blank_grids(values_only=True)
-        gridgen.iterate_cell_count = 0
-        gridgen.iterate_number_count = 0
-        success, timedout = gridgen.real_iterate_least(timeout=1)
-        elapsed = round(time() - start_time, 2)
-        print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,} number count {gridgen.iterate_number_count},  success? {success}, timedout? {timedout},   time {elapsed}")
-        print(gridgen.grid)
-        print("Legit? ", gridgen.is_grid_legit())
+        counts.append(gridgen.iterate_cell_count)
+        timing1.append(elapsed)
+
+        # ##NOW TRY A SECOND ATTEMPT TO SOLVE -- a different way
+        # #SUPERSEDED -- BETTER SOLVER!
+        # start_time = time()
+        # gridgen.create_blank_grids(values_only=True)
+        # gridgen.iterate_cell_count = 0
+        # gridgen.iterate_number_count = 0
+        # success, timedout = gridgen.real_iterate_least(timeout=1)
+        # elapsed = round(time() - start_time, 2)
+        # print(f"Least Solver- #{loop}, cells iterated {gridgen.iterate_cell_count:,} number count {gridgen.iterate_number_count},  success? {success}, timedout? {timedout},   time {elapsed}")
+        # print(gridgen.grid)
+        # print("Legit? ", gridgen.is_grid_legit())
 
         ##NOW TRY A THIRD ATTEMPT TO SOLVE -- hopeufully quicker
 
@@ -87,22 +103,88 @@ def gen_multi_grids_getstats():
         gridgen.create_blank_grids(values_only=True)
         gridgen.iterate_cell_count = 0
         gridgen.iterate_number_count = 0
-        success,iterations = gridgen.new_iterate()
+        success,iterations = gridgen.new_iterate(timeout=common_timeout)
         elapsed = round(time() - start_time, 2)
-        print(f"Least Solver- #{loop}, cells iterated {iterations:,}  success? {success},   time {elapsed}")
-        print(gridgen.grid)
-        print("Legit? ", gridgen.is_grid_legit())
+        legit = gridgen.is_grid_legit()
+        print(f"#{loop} NEW  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
+
+        #print(gridgen.grid)
+        timing2.append(elapsed)
+        if success!="timed out": results2+=1
+
+
+        #v3=with full least search
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
+        success,iterations = gridgen.new_iterate(timeout=common_timeout,always_wholegrid_least=True)
+        elapsed = round(time() - start_time, 2)
+        legit = gridgen.is_grid_legit()
+        print(f"#{loop} NEW  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
+        print()
+        #print(gridgen.grid)
+        timing3.append(elapsed)
+        if success!="timed out": results3+=1
 
 
 
         # print (gridgen.grid_shapes)
 
-    print (np.average(counts))
+    print ("original",np.average(timing1),results1)
+    print("new method", np.average(timing2),results2)
+    print("new method -- wider", np.average(timing3), results3)
+
+def quick_or_slow_test():
+    gridgen.initialise_grid(rows=9,cols=11)
+
+    #set max time per go for each speed
+    speeds=[3,1,0.3,0.1,0.02]
+
+    #set total time to test
+    total_time=2
+
+    seed=random.randint(1,10000)
+
+    for speed in speeds:
+        print()
+        print(f"***SPEED {speed} seconds")
+
+        random.seed(seed)
+        tried=0
+        result_count=0
+        success_count=0
+        start_time=time()
+
+        while True:
+
+            tried+=1
+            gridgen.create_blank_grids()
+            gridgen.gen_predet_shapes(turtle_fill=False)
+            gridgen.get_shape_coords()
+            result,iterations=gridgen.new_iterate(speed)
+            #print (f"#{tried}: result?{result}")
+            #print (gridgen.grid)
+            if result!="timed out":
+                result_count+=1
+            if result=="success":
+                success_count+=1
+
+            if time()>start_time+total_time:
+                break
+
+        print (f"SPEED {speed} TOTAL successes {success_count}, results {result_count} out of {tried}")
+
+
+
+
+
+
 
 
 
 
 if __name__ == '__main__':
-    cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
+    #cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
     #gen_multi_grids_getstats()
+
+    quick_or_slow_test()
 

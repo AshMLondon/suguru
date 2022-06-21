@@ -10,13 +10,14 @@ import numpy as np
 import pandas as pd
 from pprint import pprint
 
-#global flags
 import helper_functions
 
+#global flags & variables
 
 verbose = False
 display_build = False
 single_cell_stop = True
+
 
 #set this outside __MAIN__ test to initialise
 standard_shapes_tuple=[
@@ -66,6 +67,12 @@ standard_shapes_long_as_list = [
     "C-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2]],
     "BigCorner-XX", [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]],
 ]
+
+def initialise_grid(rows,cols):
+    global num_rows,num_cols
+    num_rows=rows
+    num_cols=cols
+    create_blank_grids()
 
 
 
@@ -977,7 +984,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
     :return: success, no of iterations
     '''
 
-    print ("********START NEW ITERATE*******")
+    #print ("********START NEW ITERATE*******")
 
     time_started=time.time()
 
@@ -1009,7 +1016,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
         possibles_here=grid_possibles[live_cell]
 
         if iteration_cycles_counter%100000==0:
-            print (f"#{iteration_cycles_counter:,}")
+            #print (f"#{iteration_cycles_counter:,}")
             if timeout:
                 if time.time()>time_started+timeout:
                     #Timed Out
@@ -1105,7 +1112,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
         # ##prepare to go down
         # if no cells left -- exit as failure
         if iteration_pointer==0:
-            print ("FAIL - no cells left")
+            #print ("FAIL - no cells left")
             return "failed", iteration_cycles_counter
         # decrease counter
         iteration_cells_used_stack[iteration_pointer]="--"  #blank out - don't really need to
