@@ -134,15 +134,15 @@ def gen_multi_grids_getstats():
     print("new method -- wider", np.average(timing3), results3)
 
 def quick_or_slow_test():
-    gridgen.initialise_grid(rows=9,cols=11)
+    gridgen.initialise_grid(rows=8,cols=10)
 
     #set max time per go for each speed
     speeds=[3,1,0.3,0.1,0.02]
 
     #set total time to test
-    total_time=2
+    total_time=6
 
-    seed=random.randint(1,10000)
+    seed=random.randint(1,100000)
 
     for speed in speeds:
         print()
@@ -153,14 +153,16 @@ def quick_or_slow_test():
         result_count=0
         success_count=0
         start_time=time()
+        iterations_used=[]
 
         while True:
 
             tried+=1
             gridgen.create_blank_grids()
-            gridgen.gen_predet_shapes(turtle_fill=False)
+            gridgen.gen_predet_shapes(turtle_fill=False,single_cell_upper_limit=0)
             gridgen.get_shape_coords()
             result,iterations=gridgen.new_iterate(speed)
+            iterations_used.append(iterations)
             #print (f"#{tried}: result?{result}")
             #print (gridgen.grid)
             if result!="timed out":
@@ -171,7 +173,7 @@ def quick_or_slow_test():
             if time()>start_time+total_time:
                 break
 
-        print (f"SPEED {speed} TOTAL successes {success_count}, results {result_count} out of {tried}")
+        print (f"SPEED {speed} TOTAL successes {success_count}, results {result_count} out of {tried}, average iterations {np.mean(iterations_used)}" )
 
 
 
@@ -186,5 +188,6 @@ if __name__ == '__main__':
     #cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
     #gen_multi_grids_getstats()
 
-    quick_or_slow_test()
+    #quick_or_slow_test()
+    cProfile.run('quick_or_slow_test()',filename="speedtest.profile")
 

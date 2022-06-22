@@ -147,7 +147,7 @@ def next_free_space_spiral(start_coord):
         if not any_in_bounds:
             return None  # spiral reached outside so stop
 
-def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=False, funky_shuffle=True):
+def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=False, funky_shuffle=True, single_cell_upper_limit=3):
     global start_point, move_coord, count, val, shape, shape_number, new_point, move, shape_permutations, valid, colour, num_rows,num_cols
     # set start coordinates
     # start_point = (int(num_rows / 2), int(num_cols / 2))
@@ -157,6 +157,9 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     random.randint(num_rows // 3 - 1, num_rows * 2 // 3 - 1), random.randint(num_cols // 3 - 1, num_cols * 2 // 3 - 1))
     # biased to middle third
     move_coord = [(0, 1), (1, 0), (0, -1), (-1, 0), (0, 0)]
+
+
+    single_cell_max = random.randint(0, single_cell_upper_limit)
 
     defined_shapes_to_choose = []  # let's try a list of lists, at least that's got a defined order
     #TODO - at least make this happen once not every loop
@@ -192,7 +195,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
     shape_number = 1
 
     single_cell_count=0
-    single_cell_max=random.randint(0,3)
+
 
 
 
@@ -1015,7 +1018,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
         # what values are possible for this cell
         possibles_here=grid_possibles[live_cell]
 
-        if iteration_cycles_counter%100000==0:
+        if iteration_cycles_counter%2500==0:
             #print (f"#{iteration_cycles_counter:,}")
             if timeout:
                 if time.time()>time_started+timeout:
@@ -1029,8 +1032,8 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
             #print("4/9??", grid_possibles[4,9])
         #print(values_changed_stack)
 
-        # if no values left - skip and go down
-        if possibles_here:  #so there are some
+        # first check if no values left - if so skip and go down
+        if possibles_here:  #ok, so there are some, carry on
             # pull a value
             value_to_use=possibles_here.pop(0)
 
@@ -1045,11 +1048,10 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
             # look up linked cells
             linked_cells_here=linked_cells_lookup[live_cell]
 
-
             # for each linked cell
             before_changes_dict={}
             for linked_cell in linked_cells_here:
-                # first, what *were* the possibilities -- build list of coordinate and possibilities, to save to stack
+                # first, what *were* the possibilities -- build list of coordinates and possibilities, to save to stack
                 #only do for unsolved cells
                 if grid[linked_cell]==0:
                     this_link_possibilities=grid_possibles[linked_cell]
@@ -1065,9 +1067,10 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
             if ni_debug:print (grid)
 
             if always_wholegrid_least:
+                #if this flag set, every iteration check the full grid for what cell next has least no of possibles
                 next_cell = find_least_possibles(grid_possibles)
             else:
-                #in this case just find fewest possibles in linked_cells
+                #in this case just find fewest possibles in linked_cells - those we've just changed
                 least_possibles=99
                 for cell, possibles_here in before_changes_dict.items():
                     if len(possibles_here)<least_possibles:
@@ -1076,17 +1079,17 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
                 if least_possibles<99:
                     next_cell=least_possible_location
                 else:
-                    #ok, so this time we've run out of things to change so have to do the find least possibles
+                    #ok, so this time we've run out of things to change so have to do the full grid find least possibles anyway
                     next_cell = find_least_possibles(grid_possibles)
 
-            if len(grid_possibles[next_cell]):  #no point in going up if going to come down again straight away
+            if len(grid_possibles[next_cell]):  #check, as no point in going up if going to come down again straight away
 
                 # push current cell coordinates to stack
                 iteration_cells_used_stack[iteration_pointer]=live_cell
 
                 if next_cell not in before_changes_dict:
-                    # print("WASNT IN DICT")
                     before_changes_dict[next_cell]=grid_possibles[next_cell].copy()
+                    #if next cell wasn't already one we'd changed, then save it into stack anyway
 
                 # push updated cells (linked cells) to stack  -- this is their original value before change
                 if ni_debug: print (f"Saving: IP {iteration_pointer},  {before_changes_dict}")
@@ -1094,11 +1097,10 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
                 values_changed_stack[iteration_pointer]=before_changes_dict
                 # [push remaining values for this cell to stack -- do we need to?? GUESSING NO]
 
-                # find cell with least possibles - set as new coord, increment counter
-                #live_cell=find_least_possibles(grid_possibles)
+                #set new coord, increment counter
                 live_cell=next_cell
                 iteration_pointer+=1
-                # continue loop
+                # continue loop -- skipping over the going down bit
                 continue
 
             else:
@@ -1148,7 +1150,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
 
 
 
-    # end of loop - but shouldn't get here
+    # end of loop - but shouldn't ever get here as it's a while true
 
     return "something weird",iteration_cycles_counter
 
