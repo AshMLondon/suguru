@@ -18,9 +18,10 @@ font-size:120%
      table, tr, td {
   border: 1px solid;
   border-collapse: collapse;
+  margin: 0 auto;
 }
-td {min-width: 26px;
-height:26px;
+td {min-width: 29px;
+height:29px;
 border-width: thin medium thin thin;
 text-align: center;
 }
@@ -38,9 +39,10 @@ text-align: center;
 
 
 <div id=""maincontainer>
-Hello!
-    {{colours_neighbouring}}
 
+    <p>Ashley's suguru web test</p>
+
+{%if result=="success"%}
 
 <table>
 {%set num_rows,num_cols = grid_shapes.shape%}
@@ -74,9 +76,12 @@ Hello!
 
 </table>
 
-....
-<br>
-time elapsed = {{elapsed}}
+
+
+{%else%}
+    TIMED OUT!
+    <br>
+{%endif%}
 
 </div>
 </body>
