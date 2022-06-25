@@ -980,7 +980,7 @@ def is_grid_legit():
 def do_absolutely_nothing_just_to_test():
     pass
 
-def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=False):
+def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=False,debug=False):
     '''
 
     :param always_wholegrid_least:  do you want to check each iteration what least possibles are across whole grid? if False just check within cells most recently linked to cell iterated
@@ -1009,6 +1009,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=F
     ni_debug=False #False #True
     # if single_location_checker:
     #     ni_debug=True
+    if debug:  ni_debug=True
 
 
     while True:   #permanent loop - normally exit via return statements
@@ -1125,8 +1126,9 @@ def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=F
             ##PREPARE TO GO UP AN ITERATION LEVEL
             if ni_debug:print (grid)
 
-            if always_wholegrid_least:
+            if always_wholegrid_least==True or iteration_pointer<10:
                 #if this flag set, every iteration check the full grid for what cell next has least no of possibles
+                #also if iteration pointer lower than small number -- first few iterations useful to jump about
                 next_cell = find_least_possibles(grid_possibles)
             else:
                 #in this case just find fewest possibles in linked_cells - those we've just changed
@@ -1138,8 +1140,21 @@ def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=F
                     if len(possibles_here)<least_possibles:
                         least_possibles=len(possibles_here)
                         least_possible_location=cell
+
                 if least_possibles<99:
-                    next_cell=least_possible_location
+                    next_cell = least_possible_location
+                    if always_wholegrid_least=="hybrid":
+                        if least_possibles>1:
+                            #check if better off using full width least possibles
+                            alt_location=find_least_possibles(grid_possibles)
+                            #print (iteration_cycles_counter,least_possibles,len(grid_possibles[alt_location]))
+                            if len(grid_possibles[alt_location])<least_possibles:
+                                next_cell=alt_location  #override
+
+
+
+
+
                 else:
                     #ok, so this time we've run out of things to change so have to do the full grid find least possibles anyway
                     next_cell = find_least_possibles(grid_possibles)
