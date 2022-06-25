@@ -1128,9 +1128,11 @@ def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=F
                 next_cell = find_least_possibles(grid_possibles)
             else:
                 #in this case just find fewest possibles in linked_cells - those we've just changed
+                #**actually this was wrong -- need to check what the linked cells are NOW - after we've changed
 
                 least_possibles=99
-                for cell, possibles_here in before_changes_dict.items():
+                for cell in before_changes_dict.keys():
+                    possibles_here=grid_possibles[cell]
                     if len(possibles_here)<least_possibles:
                         least_possibles=len(possibles_here)
                         least_possible_location=cell
