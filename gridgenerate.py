@@ -1092,12 +1092,14 @@ def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=F
                         places_found=[]
                         #print ("TCS", this_changed_shape_coords)
                         for cell in this_changed_shape_coords:
-                            #print (number, cell, grid_possibles[cell])
-                            if number in grid_possibles[cell]:
-                                places_found.append(cell)
-                                if len(places_found)>1:
-                                    #print("at least 2")
-                                    break
+                            if grid[cell]==0:
+                                #only check non solved cells
+                                #print (number, cell, grid_possibles[cell])
+                                if number in grid_possibles[cell]:
+                                    places_found.append(cell)
+                                    if len(places_found)>1:
+                                        #print("at least 2")
+                                        break
                         if len(places_found)==1:
                             # good, we've found a cell that's the only location for a number within a shape
                             single_location_left=places_found[0]
