@@ -980,7 +980,7 @@ def is_grid_legit():
 def do_absolutely_nothing_just_to_test():
     pass
 
-def new_iterate(timeout=5,always_wholegrid_least=False):
+def new_iterate(timeout=5,always_wholegrid_least=False,single_location_checker=False):
     '''
 
     :param always_wholegrid_least:  do you want to check each iteration what least possibles are across whole grid? if False just check within cells most recently linked to cell iterated
@@ -1006,7 +1006,10 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
     live_cell = least_possible_location
 
     #Now starting iteration loop
-    ni_debug=False #True
+    ni_debug=False #False #True
+    # if single_location_checker:
+    #     ni_debug=True
+
 
     while True:   #permanent loop - normally exit via return statements
 
@@ -1036,6 +1039,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
         if possibles_here:  #ok, so there are some, carry on
             # pull a value
             value_to_use=possibles_here.pop(0)
+            if ni_debug: print ("value to use:", value_to_use)
 
             # set grid with this value
             grid[live_cell]=value_to_use
@@ -1048,19 +1052,72 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
             # look up linked cells
             linked_cells_here=linked_cells_lookup[live_cell]
 
-            # for each linked cell
+            # Linked Cell loop -- for every linked cell - save status first and then change if has same number
+            shapes_changed=set()
             before_changes_dict={}
             for linked_cell in linked_cells_here:
-                # first, what *were* the possibilities -- build list of coordinates and possibilities, to save to stack
-                #only do for unsolved cells
+                # first, what *were* the possibilities before changing -- build list of coordinates and possibilities, to save to stack
+
                 if grid[linked_cell]==0:
+                    # (only need to do for unsolved cells)
                     this_link_possibilities=grid_possibles[linked_cell]
                     before_changes_dict[linked_cell]=this_link_possibilities.copy() #try a copy so it doesn't keep changing afterwards
 
+                    # now check impact
                     # update possibilities - remove current value if appears there
                     if value_to_use in this_link_possibilities:
                         this_link_possibilities.remove(value_to_use)
                         #this is effectively a pointer, so changes the main grid_possibles too
+                        shapes_changed.add(grid_shapes[linked_cell])  #it's a set, so no duplicates
+
+
+
+
+            #Now doing after the linked cells loop
+            ######***MOVE THIS INTO A FUNCTION
+            #extra bit - check if after changes we're  leaving any possible number only in one place in shape
+            #if so, make that the only possibility in that cell
+            #mirrors the human logic solver
+
+            if single_location_checker: #one_per_shape:
+                #print ("itno",iteration_cycles_counter,"shapes changed",shapes_changed)
+                for this_shape in shapes_changed:
+
+                    this_changed_shape_coords=shape_coords[this_shape]
+                    #print(f"live cell {live_cell}  [shape {grid_shapes[live_cell]}], linked_cell {linked_cell}, this_shape {this_shape}, coords {this_changed_shape_coords}")
+
+                    numbers_to_check=range(1, len(this_changed_shape_coords) + 1)
+                    for number in numbers_to_check:
+                        #print ("n2c -",number)
+                        places_found=[]
+                        #print ("TCS", this_changed_shape_coords)
+                        for cell in this_changed_shape_coords:
+                            #print (number, cell, grid_possibles[cell])
+                            if number in grid_possibles[cell]:
+                                places_found.append(cell)
+                                if len(places_found)>1:
+                                    #print("at least 2")
+                                    break
+                        if len(places_found)==1:
+                            # good, we've found a cell that's the only location for a number within a shape
+                            single_location_left=places_found[0]
+                            #let's just check if it's already the *only* possible there - if so, it's already being dealt with
+                            if len(grid_possibles[single_location_left])>1:
+
+                                #if that location not already in linked cells (eg if in wider shape) - add to changed shapes before changing
+                                # print("this linked cell",linked_cell,"linkedcellshere",linked_cells_here)
+                                # print(f"single location left {single_location_left}",before_changes_dict)
+                                # print (before_changes_dict)
+                                if single_location_left not in before_changes_dict:
+                                    before_changes_dict[single_location_left]=grid_possibles[single_location_left].copy()
+
+                                # print(before_changes_dict)
+
+                                # print(grid_possibles[places_found[0]])
+                                grid_possibles[places_found[0]]=[number]
+                                # print ("Done it",places_found[0],"itno",iteration_cycles_counter)
+                                # print (grid_possibles[places_found[0]])
+
 
 
             ##PREPARE TO GO UP AN ITERATION LEVEL
@@ -1071,6 +1128,7 @@ def new_iterate(timeout=5,always_wholegrid_least=False):
                 next_cell = find_least_possibles(grid_possibles)
             else:
                 #in this case just find fewest possibles in linked_cells - those we've just changed
+
                 least_possibles=99
                 for cell, possibles_here in before_changes_dict.items():
                     if len(possibles_here)<least_possibles:

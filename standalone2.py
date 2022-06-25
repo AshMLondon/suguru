@@ -28,8 +28,8 @@ def gen_multi_grids_getstats():
     #generate multiple grids and get stats on how many goes it took
 
     #global initial variables
-    gridgen.num_rows=8 #5
-    gridgen.num_cols=10  #7
+    gridgen.num_rows=9 #5
+    gridgen.num_cols=7  #7
     gridgen.verbose = False
     gridgen.display_build=False
 
@@ -38,10 +38,10 @@ def gen_multi_grids_getstats():
     # num_timeout=0
 
     gridgen.max_iters = 1e6
-    number_to_loop=20
+    number_to_loop=1 #20
 
     pick_seed=random.randint(1,10000)
-    #pick_seed=8211
+    #pick_seed=1220
     print (f"seed {pick_seed}")
     random.seed(pick_seed)
 
@@ -49,9 +49,13 @@ def gen_multi_grids_getstats():
     timing1=[]
     timing2=[]
     timing3=[]
+    timing4=[]
+    timing5=[]
     results1=0
     results2=0
     results3=0
+    results4=0
+    results5=0
 
     common_timeout=3
 
@@ -62,7 +66,7 @@ def gen_multi_grids_getstats():
         gridgen.gen_predet_shapes(turtle_fill=False)
 
         gridgen.shape_coords = gridgen.get_shape_coords()
-        #print (gridgen.grid_shapes)
+        print (gridgen.grid_shapes)
 
 
 
@@ -119,11 +123,39 @@ def gen_multi_grids_getstats():
         success,iterations = gridgen.new_iterate(timeout=common_timeout,always_wholegrid_least=True)
         elapsed = round(time() - start_time, 2)
         legit = gridgen.is_grid_legit()
-        print(f"#{loop} NEW  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
+        print(f"#{loop} NEW -WHOLEGRID  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
         print()
-        #print(gridgen.grid)
+        print(gridgen.grid)
         timing3.append(elapsed)
         if success!="timed out": results3+=1
+
+        #v4=single location checker
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
+        success,iterations = gridgen.new_iterate(timeout=common_timeout,always_wholegrid_least=True,single_location_checker=True)
+        elapsed = round(time() - start_time, 2)
+        legit = gridgen.is_grid_legit()
+        print(f"#{loop} NEW -locationchecker-WHOLEGRID  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
+        print()
+        print(gridgen.grid)
+        timing4.append(elapsed)
+        if success!="timed out": results4+=1
+
+
+        #v5=single location checker/not wholegrid
+        start_time = time()
+        gridgen.create_blank_grids(values_only=True)
+        success,iterations = gridgen.new_iterate(timeout=common_timeout,single_location_checker=True)
+        elapsed = round(time() - start_time, 2)
+        legit = gridgen.is_grid_legit()
+        print(f"#{loop} NEW -locationchecker-NOT  cells iterated {iterations:,}  success? {success},  legit? {legit}   time {elapsed}")
+        print()
+        print(gridgen.grid)
+        timing5.append(elapsed)
+        if success!="timed out": results5+=1
+
+
+
 
 
 
@@ -132,6 +164,8 @@ def gen_multi_grids_getstats():
     print ("original",np.average(timing1),results1)
     print("new method", np.average(timing2),results2)
     print("new method -- wider", np.average(timing3), results3)
+    print("new method -- singlelocation", np.average(timing4), results4)
+    print("new method -- singlelocation-notwide", np.average(timing5), results5)
 
 def quick_or_slow_test():
     gridgen.initialise_grid(rows=8,cols=10)
@@ -186,8 +220,8 @@ def quick_or_slow_test():
 
 if __name__ == '__main__':
     #cProfile.run('gen_multi_grids_getstats()',filename="speedtest.profile")
-    #gen_multi_grids_getstats()
+    gen_multi_grids_getstats()
 
     #quick_or_slow_test()
-    cProfile.run('quick_or_slow_test()',filename="speedtest.profile")
+    #cProfile.run('quick_or_slow_test()',filename="speedtest.profile")
 
