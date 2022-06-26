@@ -1264,15 +1264,15 @@ def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
             if cell_iter_no < num_rows * num_cols - 1:  # TODO create variable
                 cell_iter_no += 1
                 iterate_cell_count += 1
-                if verbose:
-                    if iterate_cell_count % 50000 == 0:
-                        elapsed = time.time() - start_time
-                        if not elapsed:
-                            rate = 0
-                        else:
-                            rate = iterate_cell_count / elapsed
-                        print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,
-                              "time", elapsed, "rate", rate)
+                # if verbose:
+                #     if iterate_cell_count % 50000 == 0:
+                #         elapsed = time.time() - start_time
+                #         if not elapsed:
+                #             rate = 0
+                #         else:
+                #             rate = iterate_cell_count / elapsed
+                #         print("iterate counts", iterate_cell_count, iterate_number_count, "cell", cell_iter_no,
+                #               "time", elapsed, "rate", rate)
             else:
                 # got as far as end cell - complete
                 total_solutions+=1
@@ -1343,14 +1343,14 @@ def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
                     if cell_iter_no < num_rows * num_cols - 1 and ok_continue:
                         iterate_cell_count += 1
                         next_step = "ascend"
-                        if iterate_cell_count % 10000 == 0:
-                            elapsed = time.time() - start_time
-                            if not elapsed:
-                                rate = 0
-                            else:
-                                rate = iterate_cell_count / elapsed
-                            print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
-                                  "rate", rate)
+                        # if iterate_cell_count % 10000 == 0:
+                        #     elapsed = time.time() - start_time
+                        #     if not elapsed:
+                        #         rate = 0
+                        #     else:
+                        #         rate = iterate_cell_count / elapsed
+                        #     print("iterate counts", iterate_cell_count, iterate_number_count, "time", elapsed,
+                        #           "rate", rate)
 
                 else:
                     # doesn't work try next number
@@ -1397,6 +1397,50 @@ def create_iterate_lookups():
             if nb in shapes:
                 neighbours.remove(nb)
         iter_nonshape_neighbours[i] = neighbours
+
+
+def puzzle_buildup():
+    global grid
+
+    print("bottom up buildup")
+    solution_grid = grid.copy()
+    grid = np.zeros((num_rows, num_cols), dtype=int)
+    starting_givens = 10
+    max_cells = num_rows * num_cols - 1
+    added = 0
+    while added < starting_givens:
+        cell_to_add = random.randint(0, max_cells)
+        r = cell_to_add // num_cols
+        c = cell_to_add % num_cols
+        if grid[r, c] == 0:
+            grid[r, c] = solution_grid[r, c]
+            added += 1
+
+    keep_going = True
+
+    # now keep building up the grid one number at a time until uniquely solveable
+    while keep_going:
+
+        # now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
+        grid_to_solve = grid.copy()
+        result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True)
+        print("solutions: ", result_successes)
+        grid = grid_to_solve
+        if result_successes > 1:
+            print(grids_found)
+            print(np.array_equal(grids_found[0], solution_grid))
+            # if more than one solution work out the 'difference' between them
+            diff = (grids_found[1] - solution_grid)  # subtract to find which elements are not same
+            print(diff)
+            diff_loc = np.argwhere(diff)  # just give locations of elements that are non-zero (ie weren't same)
+            print(diff_loc)
+            # now use one of locations to add the next number into the grid
+            cell_to_add = (diff_loc[0, 0], diff_loc[0, 1])
+            print(cell_to_add)
+            grid[cell_to_add] = solution_grid[cell_to_add]
+        else:
+            print("success")
+            keep_going = False
 
 
 if __name__ == '__main__':
@@ -1864,6 +1908,8 @@ if __name__ == '__main__':
                             removed+=1
                     return grid
 
+
+
                 ##################################
                 ##now let's try to come up with single answer?
                 puzzle_set="buildup"
@@ -1893,48 +1939,12 @@ if __name__ == '__main__':
                     print (last_known_unique_soln)
 
                 if puzzle_set=="buildup":
-                    print("bottom up buildup")
-                    solution_grid=grid.copy()
-                    grid = np.zeros((num_rows, num_cols), dtype=int)
-                    starting_givens=10
-                    max_cells = num_rows * num_cols - 1
-                    added=0
-                    while added<starting_givens:
-                        cell_to_add=random.randint(0, max_cells)
-                        r = cell_to_add // num_cols
-                        c = cell_to_add % num_cols
-                        if grid[r, c]==0:
-                            grid[r,c]=solution_grid[r,c]
-                            added+=1
+                    puzzle_buildup()
 
-                    keep_going=True
 
-                    #now keep building up the grid one number at a time until uniquely solveable
-                    while keep_going:
 
-                        #now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
-                        grid_to_solve=grid.copy()
-                        result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True)
-                        print ("solutions: ",result_successes)
-                        grid=grid_to_solve
-                        if result_successes>1:
-                            print (grids_found)
-                            print (np.array_equal(grids_found[0],solution_grid))
-                            #if more than one solution work out the 'difference' between them
-                            diff=(grids_found[1] - solution_grid)  #subtract to find which elements are not same
-                            print (diff)
-                            diff_loc=np.argwhere(diff) #just give locations of elements that are non-zero (ie weren't same)
-                            print (diff_loc)
-                            #now use one of locations to add the next number into the grid
-                            cell_to_add=(diff_loc[0,0],diff_loc[0,1])
-                            print (cell_to_add)
-                            grid[cell_to_add]=solution_grid[cell_to_add]
-                        else:
-                            print ("success")
-                            keep_going=False
-
-                    display_numbers()
-                    turtle.done()
+                display_numbers()
+                turtle.done()
 
 
 

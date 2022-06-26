@@ -64,7 +64,9 @@ text-align: center;
             {% endfor %}
             ;">
                 {%if grid is defined%}
+                     {%if grid[r,c]>0%}
                     {{grid[r,c]}}
+                    {%endif%}
                 {%else%}
                     {{grid_shapes[r,c]}}
                 {%endif%}
