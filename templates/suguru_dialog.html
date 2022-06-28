@@ -1,0 +1,21 @@
+{% extends "suguru_new_grid.html"%}
+{##THIS IS JUST A TEST FILE ##}
+{%block maincontent%}
+
+This will generate a new random suguru puzzle for you (it might take a few seconds, depending on size..)
+
+ <form action="/generate_puzzle" autocomplete="off" method="get">
+     <p>Choose size of suguru puzzle to generate</p>
+     <p><label>width
+         <input type="number" name="width" min="4" max="15" value="{{cols}}" style="font-size:130%; width: 160px;" autofocus/>
+        </label>
+     </p>
+
+     <p><label>height
+         <input type="number" min="4" max="12" name="height" value="{{rows}}" style="font-size:130%; width: 160px;" autofocus/></label></p>
+     <p><input type="submit" value="Enter"/></p>
+  </form>
+
+
+
+{%endblock%}

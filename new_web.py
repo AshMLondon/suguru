@@ -5,7 +5,7 @@
 import gridgenerate as gridgen
 #from helper_functions import solve_via_api
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request,session
 
 #import database_functions as db
 from time import time
@@ -17,6 +17,8 @@ import pprint
 ## Start Flask Running
 ## note to work properly the app.run is at the end after the definitions..
 app = Flask(__name__)
+app.secret_key="needsomethingtowork"
+
 global colours_neighbouring
 colours_neighbouring=[]
 
@@ -53,11 +55,30 @@ def get_unique_colours():
     return shape_colours
 
 
+
+
+
 @app.route("/")
 @app.route("/index")
-def show_one_grid():
-    rows=10
-    cols=13
+def input_params():
+    rows=session.get("rows",8)
+    cols=session.get("cols",8)
+    print(rows,cols)
+    return render_template("suguru_dialog.html",rows=rows,cols=cols)
+
+
+@ app.route ("/generate_puzzle")
+def find_and_show_one_puzzle():
+    cols=int(request.args.get("width"))
+    rows=int(request.args.get("height"))
+    print (rows,cols)
+
+    #save in session for next time
+    session["rows"]=rows
+    session["cols"]=cols
+
+    # rows=10
+    # cols=13
     mini_timeout=0.05
     maxi_timeout=6
     start_time=time()
