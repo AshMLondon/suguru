@@ -1280,7 +1280,7 @@ def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
                 print (grid)
                 solution_grids_found.append(grid.copy())
                 next_step="descend"
-                if total_solutions>max_solutions:
+                if total_solutions>=max_solutions:
                     break
 
         if next_step == "descend":
@@ -1405,7 +1405,7 @@ def puzzle_buildup():
     print("bottom up buildup")
     solution_grid = grid.copy()
     grid = np.zeros((num_rows, num_cols), dtype=int)
-    starting_givens = 10
+    starting_givens = max(num_rows,num_cols) # instead of 10 start with whichever is the biggest dimension
     max_cells = num_rows * num_cols - 1
     added = 0
     while added < starting_givens:
@@ -1422,24 +1422,27 @@ def puzzle_buildup():
     while keep_going:
 
         # now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
-        grid_to_solve = grid.copy()
+        grid_to_solve = grid.copy()  #keep a copy of just the puzzle start numbers as this will be overwritten
         result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True)
         print("solutions: ", result_successes)
         grid = grid_to_solve
         if result_successes > 1:
             print(grids_found)
-            print(np.array_equal(grids_found[0], solution_grid))
+            print(np.array_equal(grids_found[0], grids_found[1]))
             # if more than one solution work out the 'difference' between them
-            diff = (grids_found[1] - solution_grid)  # subtract to find which elements are not same
+            #NEW: check solution 1 against solution 0, not against the ideal 'solution_grid' -- shouldn't really matter now - a solution is a solution
+            diff = (grids_found[1] - grids_found[0])  # subtract to find which elements are not same
             print(diff)
+            print ("1",grids_found[1])
+            print("sol",grids_found[0])
             diff_loc = np.argwhere(diff)  # just give locations of elements that are non-zero (ie weren't same)
             print(diff_loc)
             # now use one of locations to add the next number into the grid
             cell_to_add = (diff_loc[0, 0], diff_loc[0, 1])
             print(cell_to_add)
-            grid[cell_to_add] = solution_grid[cell_to_add]
+            grid[cell_to_add] = grids_found[0][cell_to_add]
         else:
-            print("success")
+            print("success - unique solutions")
             keep_going = False
 
 
