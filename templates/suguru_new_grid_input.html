@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashley's Suguru Test</title>
+
+    <style>
+
+    body {
+font-family: Helvetica, sans-serif; text-align:center;
+background-color:#bbbbbb;
+font-size:120%
+}
+
+    #maincontainer {width:500px ; margin: 10 auto;}
+
+    span.given
+    {font-weight:bold;
+    font-size:120%;}
+
+     table, tr, td {
+  border: 1px solid;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+td {min-width: 29px;
+height:29px;
+border-width: thin medium thin thin;
+text-align: center;
+}
+
+input[type="text"]
+{
+    background: transparent;
+    border: none;
+    width:26px;
+    font-size:100%;
+    text-align:center;
+    color: blue;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
+
+}
+
+    </style>
+</head>
+<body>
+
+
+
+<!--- {%set colours=["azure","blanchedalmond","gold", "beige","khaki","cornsilk","honeydew","lemonchiffon","bisque","oldlace", "orange","blue","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
+--->
+{%set colours= [random_colour(),random_colour(), random_colour(), random_colour(),random_colour(),"lemonchiffon","khaki"] %}
+
+
+
+<div id=""maincontainer>
+
+    <p>Ashley's suguru web test</p>
+
+{% block maincontent %}
+
+{%if result=="success"%}
+
+<table>
+{%set num_rows,num_cols = grid_shapes.shape%}
+{%for r in range(num_rows)%}
+    <tr>
+    {%for c in range(num_cols)%}
+            {%set move_coord = [(-1, 0), (0,1), (1, 0), (0, -1)]%}
+            <td style="background-color: {{colours[shape_colours[grid_shapes[r,c]]]}}; border-width:
+            {%for move in move_coord%}
+                {%if (0<=r+move[0]<=num_rows) and (0<=c+move[1]<=num_cols)%}
+                    {%if grid_shapes[r+move[0],c+move[1]]==grid_shapes[r,c]%}
+                        thin
+                    {%else%}
+                        medium
+                    {%endif%}
+                {%else%}
+                    medium
+                {%endif%}
+            {% endfor %}
+            ;">
+                {%if grid is defined%}
+                     {%if grid[r,c]>0%}
+                    <span class="given">
+                    {{grid[r,c]}}
+                    </span>
+                    {%else%}
+                    <input type="text" ID="{{r}},{{c}}"></input>
+                    {%endif%}
+                {%else%}
+                    {{grid_shapes[r,c]}}
+                {%endif%}
+            </td>
+    {% endfor %}
+    </tr>
+{% endfor %}
+
+
+</table>
+
+
+
+{%else%}
+    TIMED OUT!
+    <br>
+{%endif%}
+
+<p></p><a href="/">Try another</a></p>
+
+{% endblock %}
+
+</div>
+</body>
+</html>

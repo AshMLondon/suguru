@@ -18,6 +18,8 @@ import pprint
 ## note to work properly the app.run is at the end after the definitions..
 app = Flask(__name__)
 app.secret_key="needsomethingtowork"
+app.jinja_env.trim_blocks = True
+app.jinja_env.lstrip_blocks = True
 
 global colours_neighbouring
 colours_neighbouring=[]
@@ -100,7 +102,7 @@ def find_and_show_one_puzzle():
 
     shape_colours = get_unique_colours()
 
-    return render_template("suguru_new_grid.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
+    return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
                            shape_colours=shape_colours, result=result)
 
 
@@ -115,6 +117,7 @@ def index():
 
 if __name__ == '__main__':
     app.run()
+
 
 
 
