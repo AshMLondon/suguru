@@ -1,6 +1,7 @@
 ## Web App
 ## Let's try to get this stuff working on the web
 # git push heroku new_web_multiple:main
+import numpy as np
 
 import gridgenerate as gridgen
 #from helper_functions import solve_via_api
@@ -105,6 +106,24 @@ def find_and_show_one_puzzle():
     return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
                            shape_colours=shape_colours, result=result)
 
+
+@app.route("/check_valid")
+def check_valid():
+    # print("GG",gridgen.num_rows)
+    guesses=np.zeros((gridgen.num_rows,gridgen.num_cols), dtype=int)
+    missing=0
+    valid=True
+    for r in range(gridgen.num_rows):
+        for c in range(gridgen.num_cols):
+            ##TODO: need to find a way to know what the givens are -- either through including in the form or using a session variable
+            this_guess=request.args.get(f"R{r}C{c}")
+            print(this_guess)
+            if this_guess in ["1","2","3","4","5"]:
+                guesses[r,c]=int(this_guess)
+
+
+    print (guesses)
+    return str(guesses.tolist())
 
 
 

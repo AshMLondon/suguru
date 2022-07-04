@@ -63,6 +63,7 @@ input[type="text"]
 {%if result=="success"%}
 
 <table>
+    <form action="/check_valid" autocomplete="off" method="get">
 {%set num_rows,num_cols = grid_shapes.shape%}
 {%for r in range(num_rows)%}
     <tr>
@@ -87,7 +88,7 @@ input[type="text"]
                     {{grid[r,c]}}
                     </span>
                     {%else%}
-                    <input type="text" ID="{{r}},{{c}}"></input>
+                    <input type="text" name="R{{r}}C{{c}}"></input>
                     {%endif%}
                 {%else%}
                     {{grid_shapes[r,c]}}
@@ -100,6 +101,8 @@ input[type="text"]
 
 </table>
 
+<p><input type="submit" value="Check"/></p>
+</form>
 
 
 {%else%}
@@ -107,7 +110,8 @@ input[type="text"]
     <br>
 {%endif%}
 
-<p></p><a href="/">Try another</a></p>
+
+<p><a href="/">Restart / try another puzzle</a></p>
 
 {% endblock %}
 
