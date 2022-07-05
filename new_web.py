@@ -6,7 +6,7 @@ import numpy as np
 import gridgenerate as gridgen
 #from helper_functions import solve_via_api
 
-from flask import Flask, render_template, request,session
+from flask import Flask, render_template, request,session, json
 
 #import database_functions as db
 from time import time
@@ -99,9 +99,12 @@ def find_and_show_one_puzzle():
     gridgen.create_iterate_lookups()
     gridgen.iterate_cell_count,gridgen.iterate_number_count=0,0
     gridgen.max_iters = 1e6
+
     gridgen.puzzle_buildup()
 
     shape_colours = get_unique_colours()
+
+    session["full_grid"]=json.dumps(gridgen.grid.tolist())
 
     return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
                            shape_colours=shape_colours, result=result)
@@ -113,6 +116,10 @@ def check_valid():
     guesses=np.zeros((gridgen.num_rows,gridgen.num_cols), dtype=int)
     missing=0
     valid=True
+
+    solution=np.array(json.loads(session["full_grid"]))
+    print ("FULL GRID",solution)
+
     for r in range(gridgen.num_rows):
         for c in range(gridgen.num_cols):
             ##TODO: need to find a way to know what the givens are -- either through including in the form or using a session variable
