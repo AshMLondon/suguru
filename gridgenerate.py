@@ -1444,6 +1444,7 @@ def puzzle_buildup():
         else:
             print("success - unique solutions")
             keep_going = False
+            return grids_found[0]
 
 
 if __name__ == '__main__':

@@ -100,11 +100,12 @@ def find_and_show_one_puzzle():
     gridgen.iterate_cell_count,gridgen.iterate_number_count=0,0
     gridgen.max_iters = 1e6
 
-    gridgen.puzzle_buildup()
+    solution=gridgen.puzzle_buildup()
 
     shape_colours = get_unique_colours()
 
-    session["full_grid"]=json.dumps(gridgen.grid.tolist())
+    session["full_grid"]=json.dumps(solution.tolist())
+    #TODO:  this feels messy -- maybe the right solution is to use a database?
 
     return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
                            shape_colours=shape_colours, result=result)
@@ -115,6 +116,9 @@ def check_valid():
     # print("GG",gridgen.num_rows)
     guesses=np.zeros((gridgen.num_rows,gridgen.num_cols), dtype=int)
     missing=0
+    error=0
+    error_locations=[]
+    correct=0
     valid=True
 
     solution=np.array(json.loads(session["full_grid"]))
@@ -122,15 +126,33 @@ def check_valid():
 
     for r in range(gridgen.num_rows):
         for c in range(gridgen.num_cols):
-            ##TODO: need to find a way to know what the givens are -- either through including in the form or using a session variable
+
             this_guess=request.args.get(f"R{r}C{c}")
             print(this_guess)
-            if this_guess in ["1","2","3","4","5"]:
-                guesses[r,c]=int(this_guess)
+            if this_guess!=None:
+                #this cell is in the form  -- so it's not a given (one of numbers given as part of puzzle)
+                if this_guess in ["1","2","3","4","5"]:
+                    #there is a valid guess here
+                    guesses[r,c]=int(this_guess)
+                    solution_here=solution[r,c]
+                    if int(this_guess) == solution_here:
+                        correct+=1
+                    else:
+                        error+=1
+                        error_locations.append((r,c))
+                else:
+                    #non-valid guess - so basically still a missing number
+                    missing+=1
 
+    output=f"correct={correct}, errors={error}, missing={missing}, {error_locations}"
+
+    ## TODO:  hmm,, will need to share the grid shapes, the original givens, the guesses, which ones are wrong...
+    # could try passing givens as hidden value in form -- or a simple Dict of which values are givens
+    # will need to redo form display as currently interprets any number in grid as a given -- need to distinctuish now between givns and guesses
 
     print (guesses)
-    return str(guesses.tolist())
+    print (output)
+    return (output)
 
 
 
