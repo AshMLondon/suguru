@@ -42,6 +42,9 @@ input[type="text"]
 
 }
 
+input[type="text"].error
+{background-color:red;}
+
     </style>
 </head>
 <body>
@@ -88,7 +91,15 @@ input[type="text"]
                     {{grid[r,c]}}
                     </span>
                     {%else%}
-                    <input type="text" name="R{{r}}C{{c}}"></input>
+                        {%if guesses[r,c]>0%}
+                        <input type="text" name="R{{r}}C{{c}}" value="{{guesses[r,c]}}"
+                               {%if (r,c) in error_locations %}
+                                class="error"
+                                {%endif%}
+                        ></input>
+                        {%else%}
+                        <input type="text" name="R{{r}}C{{c}}"></input>
+                        {%endif%}
                     {%endif%}
                 {%else%}
                     {{grid_shapes[r,c]}}

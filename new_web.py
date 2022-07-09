@@ -104,7 +104,10 @@ def find_and_show_one_puzzle():
 
     shape_colours = get_unique_colours()
 
+    session["rows"]=gridgen.num_rows
+    session["cols"]=gridgen.num_cols
     session["full_grid"]=json.dumps(solution.tolist())
+    session["grid_shapes"]=json.dumps(gridgen.grid_shapes.tolist())
     #TODO:  this feels messy -- maybe the right solution is to use a database?
 
     return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
@@ -114,15 +117,22 @@ def find_and_show_one_puzzle():
 @app.route("/check_valid")
 def check_valid():
     # print("GG",gridgen.num_rows)
-    guesses=np.zeros((gridgen.num_rows,gridgen.num_cols), dtype=int)
+
+    grid_shapes = np.array(json.loads(session["grid_shapes"]))
+    shape_colours = get_unique_colours()
+    #print (grid_shapes)
+    rows, cols=grid_shapes.shape
+    solution = np.array(json.loads(session["full_grid"]))
+
+    guesses=np.zeros((rows,cols), dtype=int)
+    givens=np.zeros((rows,cols), dtype=int)
     missing=0
     error=0
     error_locations=[]
     correct=0
     valid=True
 
-    solution=np.array(json.loads(session["full_grid"]))
-    print ("FULL GRID",solution)
+    #print ("FULL GRID",solution)
 
     for r in range(gridgen.num_rows):
         for c in range(gridgen.num_cols):
@@ -143,8 +153,21 @@ def check_valid():
                 else:
                     #non-valid guess - so basically still a missing number
                     missing+=1
+            else:
+                #cell was a given - let's rebuild that since we've not saved it
+                givens[r,c]=solution[r,c]
 
-    output=f"correct={correct}, errors={error}, missing={missing}, {error_locations}"
+    if error:
+        result="errors"
+        output="There are errors:  "
+    elif missing:
+        result="missing"
+        output="Correct so far.."
+    else:
+        result="success"
+        output="Success!!"
+
+    output+=f"  correct={correct}, errors={error}, missing={missing}, error locations {error_locations}"
 
     ## TODO:  hmm,, will need to share the grid shapes, the original givens, the guesses, which ones are wrong...
     # could try passing givens as hidden value in form -- or a simple Dict of which values are givens
@@ -152,7 +175,10 @@ def check_valid():
 
     print (guesses)
     print (output)
-    return (output)
+
+    return render_template("check_guesses.html", grid_shapes=grid_shapes, grid=givens, guesses=guesses, error_locations=error_locations,
+                           shape_colours=shape_colours, result="success", text_output=output)
+
 
 
 
