@@ -19,6 +19,13 @@ font-size:120%
     {font-weight:bold;
     font-size:120%;}
 
+    p.smallprint
+    {font-size:70%;
+    font-style: italic;
+    }
+
+
+
      table, tr, td {
   border: 1px solid;
   border-collapse: collapse;
@@ -40,7 +47,7 @@ input[type="text"]
     color: blue;
     font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
 
-}
+
 
     </style>
 </head>
@@ -49,9 +56,9 @@ input[type="text"]
 
 
 <!--- {%set colours=["azure","blanchedalmond","gold", "beige","khaki","cornsilk","honeydew","lemonchiffon","bisque","oldlace", "orange","blue","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
---->
-{%set colours= [random_colour(),random_colour(), random_colour(), random_colour(),random_colour(),"lemonchiffon","khaki"] %}
 
+{%set colours= [random_colour(),random_colour(), random_colour(), random_colour(),random_colour(),"lemonchiffon","khaki"] %}
+--->
 
 
 <div id=""maincontainer>
@@ -69,7 +76,7 @@ input[type="text"]
     <tr>
     {%for c in range(num_cols)%}
             {%set move_coord = [(-1, 0), (0,1), (1, 0), (0, -1)]%}
-            <td style="background-color: {{colours[shape_colours[grid_shapes[r,c]]]}}; border-width:
+            <td style="background-color: {{colours_list[shape_colours[grid_shapes[r,c]]]}}; border-width:
             {%for move in move_coord%}
                 {%if (0<=r+move[0]<=num_rows) and (0<=c+move[1]<=num_cols)%}
                     {%if grid_shapes[r+move[0],c+move[1]]==grid_shapes[r,c]%}
@@ -114,7 +121,14 @@ input[type="text"]
 {%endif%}
 
 
+
+
 <p><a href="/">Restart / try another puzzle</a></p>
+
+
+<p class="smallprint">{%if goes_needed%}
+    [{{goes_needed}} grids generated and checked to find this puzzle]
+{%endif%}</p>
 
 {% endblock %}
 

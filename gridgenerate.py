@@ -1399,7 +1399,7 @@ def create_iterate_lookups():
         iter_nonshape_neighbours[i] = neighbours
 
 
-def puzzle_buildup():
+def puzzle_buildup(maxi_timeout=10):
     global grid
 
     print("bottom up buildup")
@@ -1417,34 +1417,47 @@ def puzzle_buildup():
             added += 1
 
     keep_going = True
+    start_time=time.time()
 
     # now keep building up the grid one number at a time until uniquely solveable
     while keep_going:
 
         # now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
         grid_to_solve = grid.copy()  #keep a copy of just the puzzle start numbers as this will be overwritten
-        result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True)
+        result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True, timeout=maxi_timeout/3) #make sure mini timeout short enough to return here in time for maxi timeout
         print("solutions: ", result_successes)
         grid = grid_to_solve
         if result_successes > 1:
-            print(grids_found)
-            print(np.array_equal(grids_found[0], grids_found[1]))
+            #more than one success - keep going with building up the puzzle
+            #but first check for an overall timeout
+            if time.time()>start_time+maxi_timeout:
+                print ("no solution - global/maxi timeout  -- optimised solver should help stop that!")
+                return None
+
+            #print(grids_found)
+            #print(np.array_equal(grids_found[0], grids_found[1]))
             # if more than one solution work out the 'difference' between them
             #NEW: check solution 1 against solution 0, not against the ideal 'solution_grid' -- shouldn't really matter now - a solution is a solution
             diff = (grids_found[1] - grids_found[0])  # subtract to find which elements are not same
-            print(diff)
-            print ("1",grids_found[1])
-            print("sol",grids_found[0])
+            #print(diff)
+            # print ("1",grids_found[1])
+            # print("sol",grids_found[0])
             diff_loc = np.argwhere(diff)  # just give locations of elements that are non-zero (ie weren't same)
-            print(diff_loc)
+            # print(diff_loc)
             # now use one of locations to add the next number into the grid
             cell_to_add = (diff_loc[0, 0], diff_loc[0, 1])
-            print(cell_to_add)
+            # print(cell_to_add)
             grid[cell_to_add] = grids_found[0][cell_to_add]
-        else:
+        elif result_successes==1:
             print("success - unique solutions")
-            keep_going = False
+            #print(grids_found)
+            # keep_going = False
             return grids_found[0]
+        else:
+            #in this case no solution found - must be because of timeout running  individual solver
+            #TODO - change the multi solver to use the new optimised solver
+            print ("no solution -- individual solver timeout")
+            return None
 
 
 if __name__ == '__main__':
@@ -1917,30 +1930,32 @@ if __name__ == '__main__':
                 ##################################
                 ##now let's try to come up with single answer?
                 puzzle_set="buildup"
-                if puzzle_set=="reduce":
-                    print ("******PRUNING!....")
-                    #let's remove numbers on a loop until we no longer get a single solution#
-                    keep_removing=True
-                    grid = remove_numbers(grid, 8)
-                    while keep_removing:
-                        last_known_unique_soln=grid.copy()
-                        grid=remove_numbers(grid,3)
-                        print ("Removed 3**")
-                        print(grid)
-                        result_successes = real_iterate_multi()
 
-                        # TODO probably what I need to do here is:
-                        # more sophisticated way of removing numbers
-                        # make sure to remove evenly across the shapes so you don't end up with some empty and some stacked
-                        #or even, once you've found a full solution, reset back to empty grid and slowly fill it with numbers from the real solution (shape by shape) until it is uniquely solveable
-
-
-
-                        print(grid)
-                        if result_successes>1:
-                            break
-                    print ("**stop")
-                    print (last_known_unique_soln)
+                #this next bit redundant - superseded by "buildup" method -- TODO: delete and check still works?
+                # if puzzle_set=="reduce":
+                #     print ("******PRUNING!....")
+                #     #let's remove numbers on a loop until we no longer get a single solution#
+                #     keep_removing=True
+                #     grid = remove_numbers(grid, 8)
+                #     while keep_removing:
+                #         last_known_unique_soln=grid.copy()
+                #         grid=remove_numbers(grid,3)
+                #         print ("Removed 3**")
+                #         print(grid)
+                #         result_successes = real_iterate_multi()
+                #
+                #         # TODO probably what I need to do here is:
+                #         # more sophisticated way of removing numbers
+                #         # make sure to remove evenly across the shapes so you don't end up with some empty and some stacked
+                #         #or even, once you've found a full solution, reset back to empty grid and slowly fill it with numbers from the real solution (shape by shape) until it is uniquely solveable
+                #
+                #
+                #
+                #         print(grid)
+                #         if result_successes>1:
+                #             break
+                #     print ("**stop")
+                #     print (last_known_unique_soln)
 
                 if puzzle_set=="buildup":
                     puzzle_buildup()

@@ -8,6 +8,7 @@ import gridgenerate as gridgen
 
 from flask import Flask, render_template, request,session, json
 
+
 #import database_functions as db
 from time import time
 import requests, random
@@ -25,9 +26,17 @@ app.jinja_env.lstrip_blocks = True
 global colours_neighbouring
 colours_neighbouring=[]
 
+colours_list=[]
+for i in range(8):
+    colours_list.append(gridgen.random_colour())
+
+print("cl",colours_list)
+
+
 #set globals for jinja templates so I can eg use functions within them
-app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighbouring=colours_neighbouring)
+app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighbouring=colours_neighbouring, colours_list=colours_list)
 print ("flask should be running...")
+
 
 
 ## END OF SETUP -- NOW INDIVIDUAL PAGES
@@ -59,24 +68,30 @@ def get_unique_colours():
 
 
 
+##NOW INDIVIDUAL PAGES
+# - first choose the size of the grid
+# - then generate and display a grid - allow you to type in your guesses
+# - then show results - are your guesses correct [so far]
+
 
 
 @app.route("/")
 @app.route("/index")
-def input_params():
-    rows=session.get("rows",8)
+def Input_Starting_Parameters():
+    #First page - place to set the starting parameters, options etc -- initially just size
+    rows=session.get("rows",8)  #remember from current session if restarting
     cols=session.get("cols",8)
-    print(rows,cols)
+    #print(rows,cols)
     return render_template("suguru_dialog.html",rows=rows,cols=cols)
 
 
 @ app.route ("/generate_puzzle")
 def find_and_show_one_puzzle():
+    #now we generate a new puzzle of  size requested
     cols=int(request.args.get("width"))
     rows=int(request.args.get("height"))
-    print (rows,cols)
-
-    #save in session for next time
+    #print (rows,cols)
+    #save size requested in session for next time
     session["rows"]=rows
     session["cols"]=cols
 
@@ -85,33 +100,55 @@ def find_and_show_one_puzzle():
     mini_timeout=0.05
     maxi_timeout=6
     start_time=time()
+    goes_needed=1
     while True:
-        gridgen.initialise_grid(rows, cols)
-        gridgen.create_blank_grids()
-        gridgen.gen_predet_shapes(turtle_fill=False, single_cell_upper_limit=0)
-        gridgen.get_shape_coords()
-        result, iterations = gridgen.new_iterate(mini_timeout, single_location_checker=True, always_wholegrid_least=False)
+        gridgen.initialise_grid(rows, cols)  #create the blank grids and set global size variables for the size requested
+        #gridgen.create_blank_grids()
+        gridgen.gen_predet_shapes(turtle_fill=False, single_cell_upper_limit=0)  #generate new grid, using the predetermined shapes approach
+        gridgen.get_shape_coords()  #calculate coords needed in other functions TODO: this should really happen with the shape generator
+        result, iterations = gridgen.new_iterate(mini_timeout, single_location_checker=True, always_wholegrid_least=False)  #can grid be solved?
         if result=="success":
             break
         if time()>start_time+maxi_timeout:
             break
 
-    gridgen.create_iterate_lookups()
-    gridgen.iterate_cell_count,gridgen.iterate_number_count=0,0
-    gridgen.max_iters = 1e6
+        goes_needed+=1
 
-    solution=gridgen.puzzle_buildup()
+    #if solveable, now create a puzzle with just a few clues from the solution
+
+
+
+    if result=="success":
+        # first some annoying prep - #TODO: put this at start of a function?
+        gridgen.create_iterate_lookups()
+        gridgen.iterate_cell_count,gridgen.iterate_number_count=0,0
+        gridgen.max_iters = 1e7
+        #then run function that builds up the puzzle
+        solution=gridgen.puzzle_buildup()
+    else:
+        solution=None
+
+    if solution is None:
+        return render_template("suguru_new_grid_input.html", result="timed out", goes_needed=goes_needed)
+        #return "Timed Out"
+        #TODO: try to stop this  happening with an optimised multi solver
 
     shape_colours = get_unique_colours()
+    #print ("shapecolours",shape_colours)
 
+
+    #save information as session variables before finishing
     session["rows"]=gridgen.num_rows
     session["cols"]=gridgen.num_cols
+    #session["shape_colours"]=shape_colours
     session["full_grid"]=json.dumps(solution.tolist())
     session["grid_shapes"]=json.dumps(gridgen.grid_shapes.tolist())
-    #TODO:  this feels messy -- maybe the right solution is to use a database?
+
 
     return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
-                           shape_colours=shape_colours, result=result)
+                           shape_colours=shape_colours, result=result, goes_needed=goes_needed)
+
+
 
 
 @app.route("/check_valid")
@@ -169,9 +206,8 @@ def check_valid():
 
     output+=f"  correct={correct}, errors={error}, missing={missing}, error locations {error_locations}"
 
-    ## TODO:  hmm,, will need to share the grid shapes, the original givens, the guesses, which ones are wrong...
-    # could try passing givens as hidden value in form -- or a simple Dict of which values are givens
-    # will need to redo form display as currently interprets any number in grid as a given -- need to distinctuish now between givns and guesses
+    #TODO:  stop error happening in Heroku
+    # tidy up result message
 
     print (guesses)
     print (output)
@@ -182,15 +218,28 @@ def check_valid():
 
 
 
+
+
 @ app.route("/test")
 def index():
     print("test called")
     return "test was called"
 
+@app.route("/setsession")
+def setsession():
+    test=np.zeros((10,10), dtype=int)
+    for r in range(10):
+        for c in range(10):
+            pass
+            # test[r,c]=random.randint(1,5)
+    session["test"]=json.dumps(test.tolist())
+
+    return "hmm"
 
 
 if __name__ == '__main__':
     app.run()
+
 
 
 
