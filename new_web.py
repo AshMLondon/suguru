@@ -154,7 +154,7 @@ def find_and_show_one_puzzle():
 
 
 
-@app.route("/check_valid")
+@app.route("/check_valid",methods=['GET', 'POST'])
 def check_valid():
     # print("GG",gridgen.num_rows)
 
@@ -185,7 +185,7 @@ def check_valid():
     for r in range(gridgen.num_rows):
         for c in range(gridgen.num_cols):
 
-            this_guess=request.args.get(f"R{r}C{c}")
+            this_guess=request.form.get(f"R{r}C{c}")
             print(this_guess)
             if this_guess!=None:
                 #this cell is in the form  -- so it's not a given (one of numbers given as part of puzzle)

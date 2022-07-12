@@ -70,7 +70,7 @@ input[type="text"]
 {%if result=="success"%}
 
 <table>
-    <form action="/check_valid" autocomplete="off" method="get">
+    <form action="/check_valid" autocomplete="off" method="post">
 {%set num_rows,num_cols = grid_shapes.shape%}
 {%for r in range(num_rows)%}
     <tr>
