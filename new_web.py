@@ -156,6 +156,10 @@ def check_valid():
     # print("GG",gridgen.num_rows)
 
     grid_shapes = np.array(json.loads(session["grid_shapes"]))
+    gridgen.num_rows = session["rows"]
+    gridgen.num_cols = session["cols"]
+
+
     shape_colours = get_unique_colours()
     #print (grid_shapes)
     rows, cols=grid_shapes.shape
