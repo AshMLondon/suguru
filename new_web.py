@@ -61,7 +61,7 @@ def get_unique_colours():
                 colour_to_try += 1
             else:
                 done = True
-        shape_colours[shape_number] = colour_to_try
+        shape_colours[int(shape_number)] = colour_to_try   #use int to override this using np.int32 as the keys - which mucks up saving in a session
     # print (shape_colours)
     # print (max(shape_colours.values()))
     return shape_colours
@@ -134,13 +134,16 @@ def find_and_show_one_puzzle():
         #TODO: try to stop this  happening with an optimised multi solver
 
     shape_colours = get_unique_colours()
-    #print ("shapecolours",shape_colours)
+    print ("shape_colours",shape_colours)
+    print (type(shape_colours))
+    for k in shape_colours:
+        print (k,type(k))
 
 
     #save information as session variables before finishing
     session["rows"]=gridgen.num_rows
     session["cols"]=gridgen.num_cols
-    #session["shape_colours"]=shape_colours
+    session["shape_colours"]=shape_colours
     session["full_grid"]=json.dumps(solution.tolist())
     session["grid_shapes"]=json.dumps(gridgen.grid_shapes.tolist())
 
@@ -159,8 +162,12 @@ def check_valid():
     gridgen.num_rows = session["rows"]
     gridgen.num_cols = session["cols"]
 
+    shape_colours_pre = session["shape_colours"]
+    # not sure why but somehow saving in session and loading again makes keys a string - so convert keys to integers
+    shape_colours = {int(key): int(value) for key, value in shape_colours_pre.items()}
 
-    shape_colours = get_unique_colours()
+    print("loaded shape colours",shape_colours)
+    #shape_colours = get_unique_colours()
     #print (grid_shapes)
     rows, cols=grid_shapes.shape
     solution = np.array(json.loads(session["full_grid"]))
