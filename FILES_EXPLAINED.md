@@ -21,6 +21,7 @@ This file also contains some display functions using Python's built in Turtle.  
 **new_web.py**
 
 This file is the front end to display puzzles via the web
+
 Basic logic goes like this:
 - choose puzzle size
 - generate grid of shapes  and turn that into a puzzle with clues and a unique solution (using functions from gridgenerate)
@@ -29,3 +30,24 @@ Basic logic goes like this:
 - you can submit your guesses at any point - don't need the full solution 
 - this will then be compared against the actual solution and your results shown
 
+
+**templates folder**
+
+this folder contains the Jinja templates that get called to render the HTML
+
+**main_template** is a parent template with the basic html setup and style sheet, the other templates use this but fill in the middle block
+**suguru_dialog** is the first template used - just shows a form to ask for the size of puzzle wanted 
+**first_show_grid_get_input** is used to display the puzzle grid for the first time with blank cells as form inputs
+**check_guessess** is used to display once a guess is made and highlight errors / how many correct etd
+
+
+***these are the most important files, but here is some info on some of the others*** 
+
+**OTHER FILES**
+**helper_functions** currently just has a function to allow an API call to a faster version of the solver using PyPy -- hopefully won't need this in future, but is currently imported in gridgenerate
+**standalone[2]** some experiments 
+**suguru.py** the original experimental file - trying to display a suguru puzzle and then trying to solve it in a 'human-like' way
+**Procfile** needed for Heroku hosting to tell it which file to run
+**requirements.txt** list of modules to pip install for virtual environment  
+
+**pypi_suguru** -- separate folder with a modified (earlier) version of files that can run under the faster PyPy python interpreter -- mostly involved avoiding using numpy arrays

@@ -1,70 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ashley's Suguru Test</title>
+{% extends "main_template.html"%}
 
-    <style>
+{%block maincontent%}
+{##this part replaces maincontent in the parent template##}
 
-    body {
-font-family: Helvetica, sans-serif; text-align:center;
-background-color:#bbbbbb;
-font-size:120%
-}
-
-    #maincontainer {width:500px ; margin: 10 auto;}
-
-    span.given
-    {font-weight:bold;
-    font-size:120%;}
-
-     table, tr, td {
-  border: 1px solid;
-  border-collapse: collapse;
-  margin: 0 auto;
-}
-td {min-width: 29px;
-height:29px;
-border-width: thin medium thin thin;
-text-align: center;
-}
-
-input[type="text"]
-{
-    background: transparent;
-    border: none;
-    width:26px;
-    font-size:100%;
-    text-align:center;
-    color: blue;
-    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
-
-}
-
-input[type="text"].error
-{background-color:red;}
-
-    </style>
-</head>
-<body>
-
-
-
-<!--- {%set colours=["azure","blanchedalmond","gold", "beige","khaki","cornsilk","honeydew","lemonchiffon","bisque","oldlace", "orange","blue","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
-
-{%set colours= [random_colour(),random_colour(), random_colour(), random_colour(),random_colour(),"lemonchiffon","khaki"] %}
---->
 {%set colours=random_colour_list()%}
 
-
-
-
-<div id=""maincontainer>
-
-    <p>Ashley's suguru web test</p>
-
-{% block maincontent %}
 
 {%if result=="success"%}
 
@@ -119,7 +59,10 @@ input[type="text"].error
 </form>
 
     {%if text_output%}
-    {{text_output}}
+    {%for text in text_output%}
+    {{text}}<br/>
+
+    {%endfor%}
     {%endif%}
 
 {%else%}
@@ -132,6 +75,3 @@ input[type="text"].error
 
 {% endblock %}
 
-</div>
-</body>
-</html>

@@ -93,11 +93,11 @@ def random_colour_stepped():
         for i in range(3):
             steps.append(random.randint(0,4))
             colour = colour + hex(255-steps[i]*step_size)[-2:]
-        print("random colour steps", steps)
+        #print("random colour steps", steps)
         if not (steps[0]==steps[1]==steps[2]):  #don't want grey
-            print(f"found - steps {steps}  hex {colour}")
+            #print(f"found - steps {steps}  hex {colour}")
             break
-        print("looping", steps)
+        #print("looping", steps)
     return colour
 
 def random_colour_list(length=8):
@@ -114,18 +114,23 @@ def random_colour_list(length=8):
             for i in range(3):
                 steps.append(random.randint(0, 4))
                 colour = colour + hex(255 - steps[i] * step_size)[-2:]
-            print("random colour steps", steps)
+            #print("random colour steps", steps)
             if not (steps[0] == steps[1] == steps[2]):  # don't want grey
-                print(f"found - steps {steps}  hex {colour}")
+                #print(f"found - steps {steps}  hex {colour}")
                 break
-            print("looping", steps)
-        #now check against duplicates
-        duplicate=False
+            #print("looping", steps)
+        #now check against colours being 'too close' to each other (only 1 step away)
+        too_close=False
         for steps_to_check in steps_list:
-            if steps_to_check==steps:
-                duplicate=True
+            comparison=0
+            for i in range(3):
+                comparison+=abs(steps[i]-steps_to_check[i])
+
+            #print(comparison, steps, steps_to_check)
+            if comparison<=1:
+                too_close=True
                 break
-        if not duplicate:
+        if not too_close:
             steps_list.append(steps)
             colour_list.append(colour)
 
@@ -1329,8 +1334,8 @@ def real_iterate_multi(timeout=None,max_solutions=2, return_grids=False):
             else:
                 # got as far as end cell - complete
                 total_solutions+=1
-                print(f"solution found --- number {total_solutions}  cell  number {cell_iter_no}")
-                print (grid)
+                # print(f"solution found --- number {total_solutions}  cell  number {cell_iter_no}")
+                # print (grid)
                 solution_grids_found.append(grid.copy())
                 next_step="descend"
                 if total_solutions>=max_solutions:
@@ -1455,7 +1460,7 @@ def create_iterate_lookups():
 def puzzle_buildup(maxi_timeout=10):
     global grid
 
-    print("bottom up buildup")
+    # print("bottom up buildup")
     solution_grid = grid.copy()
     grid = np.zeros((num_rows, num_cols), dtype=int)
     starting_givens = max(num_rows,num_cols) # instead of 10 start with whichever is the biggest dimension
@@ -1478,7 +1483,7 @@ def puzzle_buildup(maxi_timeout=10):
         # now check whether this grid is uniquely solveable -- and return a  copy of the first 2 solutions
         grid_to_solve = grid.copy()  #keep a copy of just the puzzle start numbers as this will be overwritten
         result_successes, grids_found = real_iterate_multi(max_solutions=2, return_grids=True, timeout=maxi_timeout/3) #make sure mini timeout short enough to return here in time for maxi timeout
-        print("solutions: ", result_successes)
+        # print("solutions: ", result_successes)
         grid = grid_to_solve
         if result_successes > 1:
             #more than one success - keep going with building up the puzzle
@@ -1502,7 +1507,7 @@ def puzzle_buildup(maxi_timeout=10):
             # print(cell_to_add)
             grid[cell_to_add] = grids_found[0][cell_to_add]
         elif result_successes==1:
-            print("success - unique solutions")
+            # print("success - unique solutions")
             #print(grids_found)
             # keep_going = False
             return grids_found[0]

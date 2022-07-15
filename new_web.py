@@ -14,6 +14,8 @@ from time import time
 import requests, random
 import pprint
 
+##at some point try  httpie -- good for apis
+
 
 
 ## Start Flask Running
@@ -131,15 +133,12 @@ def find_and_show_one_puzzle():
         solution=None
 
     if solution is None:
-        return render_template("suguru_new_grid_input.html", result="timed out", goes_needed=goes_needed)
+        return render_template("first_show_grid_get_input.html", result="timed out", goes_needed=goes_needed)
         #return "Timed Out"
         #TODO: try to stop this  happening with an optimised multi solver
 
     shape_colours = get_unique_colours()
-    print ("shape_colours",shape_colours)
-    print (type(shape_colours))
-    for k in shape_colours:
-        print (k,type(k))
+    # print ("shape_colours",shape_colours)
 
 
     #save information as session variables before finishing
@@ -150,7 +149,7 @@ def find_and_show_one_puzzle():
     session["grid_shapes"]=json.dumps(gridgen.grid_shapes.tolist())
 
 
-    return render_template("suguru_new_grid_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
+    return render_template("first_show_grid_get_input.html", grid_shapes=gridgen.grid_shapes,grid=gridgen.grid,
                            shape_colours=shape_colours, result=result, goes_needed=goes_needed)
 
 
@@ -168,7 +167,7 @@ def check_valid():
     # not sure why but somehow saving in session and loading again makes keys a string - so convert keys to integers
     shape_colours = {int(key): int(value) for key, value in shape_colours_pre.items()}
 
-    print("loaded shape colours",shape_colours)
+    #print("loaded shape colours",shape_colours)
     #shape_colours = get_unique_colours()
     #print (grid_shapes)
     rows, cols=grid_shapes.shape
@@ -188,7 +187,7 @@ def check_valid():
         for c in range(gridgen.num_cols):
 
             this_guess=request.form.get(f"R{r}C{c}")
-            print(this_guess)
+            # print(this_guess)
             if this_guess!=None:
                 #this cell is in the form  -- so it's not a given (one of numbers given as part of puzzle)
                 if this_guess in ["1","2","3","4","5"]:
@@ -209,7 +208,7 @@ def check_valid():
 
     if error:
         result="errors"
-        output="There are errors:  "
+        output="There are errors"
     elif missing:
         result="missing"
         output="Correct so far.."
@@ -217,13 +216,14 @@ def check_valid():
         result="success"
         output="Success!!"
 
-    output+=f"  correct={correct}, errors={error}, missing={missing}, error locations {error_locations}"
+    output=[output]
 
-    #TODO:  stop error happening in Heroku
-    # tidy up result message
+    output.append(f"correct={correct}, errors={error}, missing={missing}")
 
-    print (guesses)
-    print (output)
+    #TODO:  tidy up result message
+
+    # print (guesses)
+    # print (output)
 
     return render_template("check_guesses.html", grid_shapes=grid_shapes, grid=givens, guesses=guesses, error_locations=error_locations,
                            shape_colours=shape_colours, result="success", text_output=output)

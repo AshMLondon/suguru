@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashley's Suguru Test</title>
+
+    <style>
+
+    body {
+font-family: Helvetica, sans-serif; text-align:center;
+background-color:white;
+font-size:120%
+}
+
+    #maincontainer {width:500px ; margin: 10 auto;}
+
+    span.given
+    {font-weight:bold;
+    font-size:120%;}
+
+    p.smallprint
+    {font-size:70%;
+    font-style: italic;
+    }
+
+
+
+     table, tr, td {
+  border: 1px solid;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+td {min-width: 29px;
+height:29px;
+border-width: thin medium thin thin;
+text-align: center;
+}
+
+input[type="text"]
+{
+    background: transparent;
+    border: none;
+    width:26px;
+    font-size:100%;
+    text-align:center;
+    color: blue;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
+    }
+
+
+ input[type="text"].error
+{background-color:red;}
+
+
+
+    </style>
+</head>
+<body>
+
+
+
+<!--- {%set colours=["azure","blanchedalmond","gold", "beige","khaki","cornsilk","honeydew","lemonchiffon","bisque","oldlace", "orange","blue","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
+
+{%set colours= [random_colour(),random_colour(), random_colour(), random_colour(),random_colour(),"lemonchiffon","khaki"] %}
+--->
+
+
+<div id=""maincontainer>
+
+    <h3>Ashley's suguru web test</h3>
+
+{% block maincontent %}
+
+    **currently just using this as parent template
+    so not expecting this to be called directly, or this text to be displayed
+    instead, this text should be replaced by child templates
+    **
+{% endblock %}
+
+</div>
+</body>
+</html>
