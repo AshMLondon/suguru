@@ -82,6 +82,59 @@ def random_colour():
         colour = colour + hex(random.randint(155, 246))[-2:]
     return colour
 
+def random_colour_stepped():
+    colour = "#"
+    step_size=10
+    min_step=0
+    max_step=4
+    while True:
+        colour = "#"
+        steps=[]
+        for i in range(3):
+            steps.append(random.randint(0,4))
+            colour = colour + hex(255-steps[i]*step_size)[-2:]
+        print("random colour steps", steps)
+        if not (steps[0]==steps[1]==steps[2]):  #don't want grey
+            print(f"found - steps {steps}  hex {colour}")
+            break
+        print("looping", steps)
+    return colour
+
+def random_colour_list(length=8):
+    colour = "#"
+    step_size = 10
+    min_step = 0
+    max_step = 4
+    steps_list=[]
+    colour_list=[]
+    while len(steps_list)<length:
+        while True:  #first find a non grey colour
+            colour = "#"
+            steps = []
+            for i in range(3):
+                steps.append(random.randint(0, 4))
+                colour = colour + hex(255 - steps[i] * step_size)[-2:]
+            print("random colour steps", steps)
+            if not (steps[0] == steps[1] == steps[2]):  # don't want grey
+                print(f"found - steps {steps}  hex {colour}")
+                break
+            print("looping", steps)
+        #now check against duplicates
+        duplicate=False
+        for steps_to_check in steps_list:
+            if steps_to_check==steps:
+                duplicate=True
+                break
+        if not duplicate:
+            steps_list.append(steps)
+            colour_list.append(colour)
+
+    return colour_list
+
+
+
+
+
 def translated_shapes(shape_in):
         # work out rotations and reflections
         translations = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
@@ -367,7 +420,7 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
 
             # if valid, add in and update records
             if valid:
-                colour = random_colour()
+                colour = random_colour_stepped()
                 for coord in shape_to_try:
                     adjusted_coord = add_coords(coord, new_point, home_coord_offset)
                     grid_shapes[adjusted_coord] = shape_number

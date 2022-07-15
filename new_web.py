@@ -26,15 +26,17 @@ app.jinja_env.lstrip_blocks = True
 global colours_neighbouring
 colours_neighbouring=[]
 
-colours_list=[]
-for i in range(8):
-    colours_list.append(gridgen.random_colour())
+# colours_list=[]
+# for i in range(8):
+#     colours_list.append(gridgen.random_colour())
+
+colours_list = gridgen.random_colour_list()
 
 print("cl",colours_list)
 
 
 #set globals for jinja templates so I can eg use functions within them
-app.jinja_env.globals.update(random_colour=gridgen.random_colour, colours_neighbouring=colours_neighbouring, colours_list=colours_list)
+app.jinja_env.globals.update(random_colour=gridgen.random_colour,random_colour_list=gridgen.random_colour_list, colours_neighbouring=colours_neighbouring, colours_list=colours_list)
 print ("flask should be running...")
 
 
