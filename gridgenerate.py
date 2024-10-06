@@ -348,6 +348,8 @@ def gen_predet_shapes(turtle_fill=True,shuffle_slightly=False,shuffle_at_start=F
 
                 # TODO: we're going to need all the translations of the shape to try
                 shape_permutations = translated_shapes(base_shape)
+                print (f"Go {go} Point {new_point} {shape_name} Shape Perms {shape_permutations}")
+
                 shuffled_shape_rotation=True
                 if shuffled_shape_rotation:
                     random.shuffle(shape_permutations)
@@ -483,6 +485,10 @@ def in_bounds(coord):
 def create_blank_grids(values_only=False):
     global grid, grid_shapes
     grid = np.zeros((num_rows, num_cols), dtype=int)
+    #print(grid)
+    #alt_method=[[0 for c in range (num_cols)] for r in range(num_rows)]
+    #grid=alt_method
+    #print("ALT",alt_method)
     if not values_only:
         grid_shapes = np.zeros((num_rows, num_cols), dtype=int)
 
@@ -1518,6 +1524,27 @@ def puzzle_buildup(maxi_timeout=10):
             return None
 
 
+def create_shape_permutations_and_save_to_file():
+    # should only need to run this one single time, then can use the file afterwards
+    output_list = []
+
+    for shape_name, shape_coords in standard_shapes_tuple:
+
+        if not "XX" in shape_name:
+            all_permutations = translated_shapes(shape_coords)
+            output_list.append((shape_name, all_permutations))
+
+    pprint(output_list)
+
+    import json
+    save_filename = "shape_permutations.json"
+    with open(save_filename, 'w') as f:
+        # indent=2 is not needed but makes the file human-readable
+        # if the data is nested
+        json.dump(output_list, f, indent=2)
+
+
+
 if __name__ == '__main__':
     ##adding this so hopefully we can reuse procedures in other files
 
@@ -1982,6 +2009,13 @@ if __name__ == '__main__':
                             grid[r,c]=0
                             removed+=1
                     return grid
+
+
+
+
+
+
+
 
 
 
