@@ -1,2 +1,5 @@
 .idea
 *.profile
+\pypi_suguru
+\data_output
+\build
