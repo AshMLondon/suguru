@@ -82,6 +82,39 @@ class Puzzle:
             if not any_in_bounds:
                 return None  # spiral reached outside so stop
 
+    def color_shapes(self):
+        shape_colors = {}
+        shape_cells = {}
+
+        # Group cells by shape
+        for r in range(self.rows):
+            for c in range(self.cols):
+                shape = self.shapes[r][c]
+                if shape not in shape_cells:
+                    shape_cells[shape] = []
+                shape_cells[shape].append((r, c))
+
+        def get_adjacent_shapes(shape):
+            adjacent = set()
+            for r, c in shape_cells[shape]:
+                for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < self.rows and 0 <= nc < self.cols and self.shapes[nr][nc] != shape:
+                        adjacent.add(self.shapes[nr][nc])
+            return adjacent
+
+        # Color shapes
+        for shape in shape_cells:
+            adjacent_shapes = get_adjacent_shapes(shape)
+            adjacent_colors = {shape_colors[adj] for adj in adjacent_shapes if adj in shape_colors}
+            for color in range(1, 7):  # We only need to check up to 4 colors #yeah, but it's a bit boring!!
+                if color not in adjacent_colors:
+                    shape_colors[shape] = color
+                    break
+
+
+        self.shape_colours=shape_colors
+        return shape_colors
 
 
     def generate_grid_shapes(self):
@@ -232,7 +265,7 @@ class Puzzle:
 
 '''
 
-
+#SIMPLE HELPER FUNCTIONS, NOT NEEDING TO BE PART OF A CLASS
 def add_coords(coord1, coord2, offset=(0, 0)):
     return (coord1[0] + coord2[0] + offset[0], coord1[1] + coord2[1] + offset[1])
 

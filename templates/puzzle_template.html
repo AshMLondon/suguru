@@ -1,0 +1,73 @@
+{% extends "main_template.html"%}
+{%block maincontent%}
+{##this part replaces maincontent in the parent template##}
+
+
+{%if True%} {#result=="success"#}
+
+{%set colours=["azure","blanchedalmond","lemonchiffon","honeydew","beige","khaki","cornsilk","bisque","oldlace", "gold", "orange","cyan","yellow","cyan","magenta","pink","red","olive","orchid","seagreen","yellow"]%}
+
+
+<table>
+    <form action="/check_valid" autocomplete="off" method="post">
+{%for r in range(puzzle.rows)%}
+    <tr>
+    {%for c in range(puzzle.cols)%}
+            {%set move_coord = [(-1, 0), (0,1), (1, 0), (0, -1)]%}
+
+            <td style="background-color: {{colours[puzzle.shape_colours[puzzle.shapes[r][c]]]}};
+            border-width:
+            {%for move in move_coord%}
+                {%if (0<=r+move[0]<puzzle.rows) and (0<=c+move[1]<puzzle.cols)%}
+                    {%if puzzle.shapes[r+move[0]][c+move[1]]==puzzle.shapes[r][c]%}
+                        thin
+                    {%else%}
+                        medium
+                    {%endif%}
+                {%else%}
+                    medium
+                {%endif%}
+            {% endfor %}
+            ;">
+                {%if False%}
+                     {%if puzzle.values[r][c]>0%}
+                    <span class="given">
+                    {{puzzle.values[r][c]}}
+                    </span>
+                    {%else%}
+                    <input type="text" name="R{{r}}C{{c}}"></input>
+                    {%endif%}
+                {%else%}
+                    {{puzzle.shapes[r][c]}}
+                {%endif%}
+            </td>
+    {% endfor %}
+    </tr>
+{% endfor %}
+
+
+</table>
+
+<p><input type="submit" value="Check"/></p>
+</form>
+
+    {%if text_output%}
+    {{text_output}}
+    {%endif%}
+
+{%else%}
+    TIMED OUT!
+    <br>
+{%endif%}
+
+
+
+
+<p><a href="/">Restart / try another puzzle</a></p>
+
+
+<p class="smallprint">{%if goes_needed%}
+    [{{goes_needed}} grids generated and checked to find this puzzle]
+{%endif%}</p>
+
+{% endblock %}
