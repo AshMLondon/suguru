@@ -2,6 +2,7 @@
 #This file aiming to refactor suguru into a tidier, class based approach
 
 import random, time, json, pprint
+import sys
 
 class Puzzle:
 
@@ -12,7 +13,8 @@ class Puzzle:
         self.cols=cols
 
         #now create two blank (filled with zero) grids:
-        self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
+        #self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
+        self.solution= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
         self.shapes= [[0 for c in range (cols)] for r in range(rows)]   #shape number that cell belongs to - defines shapes within the grid
 
         #load the lookup table of all possible shapes and their permutations
@@ -31,20 +33,20 @@ class Puzzle:
         valid = (0 <= coord[0] <= self.rows - 1) and (0 <= coord[1] <= self.cols - 1)
         return valid
 
-    def get_value(self,coord):
-        return self.values[coord[0]][coord[1]]
+    def get_solution(self,coord):
+        return self.solution[coord[0]][coord[1]]
 
     def get_shape(self,coord):
         return self.shapes[coord[0]][coord[1]]
 
-    def set_value(self,coord,value):
-        self.values[coord[0]][coord[1]]=value
+    def set_solution(self,coord,value):
+        self.solution[coord[0]][coord[1]]=value
 
     def set_shape(self,coord,value):
         self.shapes[coord[0]][coord[1]]=value
 
-    def dump_values(self):
-        for row in self.values:
+    def dump_solution(self):
+        for row in self.solution:
             print(row)
 
     def dump_shapes(self):
@@ -130,7 +132,7 @@ class Puzzle:
         go = 0
         shape_number = 1
         single_cell_count = 0
-        verbose=True
+        verbose=False
         active_point=start_point
 
 
@@ -179,7 +181,9 @@ class Puzzle:
                                 # ideally if already blocked, then this is already a problem - leave it be
                                 # so long as at least one sideways escape route, that's ok
                                 # otherwise fail this shape
-                            '''    
+
+                            ''' 
+                            #single cell stop stuff - can add in later    
                             if single_cell_stop:
                                     if valid:
                                         # first establish affected cells
@@ -218,13 +222,13 @@ class Puzzle:
                 if valid: break
 
 
-            print ("valid?", valid)
+            #print ("valid?", valid)
 
             if valid:
                 for coord in shape_to_try:
                     adjusted_coord = add_coords(coord, active_point, home_coord_offset)
                     self.set_shape(adjusted_coord,shape_number)
-            self.dump_shapes()
+            #self.dump_shapes()
             #now move on to next space - use spiral
 
             spiral_point=self.next_free_space_spiral(active_point)
@@ -239,31 +243,103 @@ class Puzzle:
                 go+=1
                 shape_number+=1
 
+    def generate_dict_of_shapes(self):
 
 
-'''
-                            if valid: break
-                        if valid: break
-                    if valid: break
 
-                # if valid, add in and update records
-                if valid:
-                    colour = random_colour_stepped()
-                    for coord in shape_to_try:
-                        adjusted_coord = add_coords(coord, new_point, home_coord_offset)
-                        grid_shapes[adjusted_coord] = shape_number
-                        if turtle_fill:
-                            fill_cell(adjusted_coord, colour)
-                    if verbose: print("valid shape")
-                    shape_number += 1
+    def better_solver(self):
+        print()
+        #ok let's start with some pseudo code working out what the hell we're going to do
+        #first off we probably need to set up some useful variables to speed things up -- (quick lookup)
+        #list/dictionary of all shapes and cells in those shapes
 
-                # if it fails loop back to try a different shape
-                else:
-                    # if verbose: print(f"not found valid shape possibility, coord={new_point}")
-                    print(
-                        f"not found valid shape possibility, coord={new_point}")  # this shouldn't really happen should it?
 
-'''
+        #dict of every cell and what the neighbours are for those cells (quick lookup)
+
+        #next we need to work out what values are possible in every cell [apparently aka domain in constraint lingo]
+        #to start with this is just how many spaces in that shapes - later we will start eliminating based on solution values
+
+        #now let's start thinking about our iterative, recursive / trackback (whch ?!?) approach
+
+        #let's work out which cell to work on
+        #first off call a function that finds the next empty cell that has the fewest possible values
+
+        #now start to loop  through all possible values for that cell
+        #set the value
+        #now let's see what impact that has, now we've added another number
+
+        #pull list of impacted cells - same shape + neighbours
+        #go through them all - if any are same value, remove that value, but note which cell we're removing from
+        #save list of modified cells
+
+        #if any of the cells now have zero possibilities - this is a bad solution
+        #undo all changes made so far
+        #carry on with the next number in the loop
+        #if we've run out of numbers -- then exit the function with a bad result
+
+        #[space here to optimise further by looking for any more cells that only have a single option after a new number added]
+
+        #having updated the possibilities -- now call the recursive function again
+        #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
+
+
+
+
+
+
+
+    def brute_force_solve(self):
+        #This method and a few functions it uses were generated by Claude AI
+        #but like Claude said, it is slow once you have anything but a small grid
+        empty = self._find_empty()
+        if not empty:
+            return True  # Puzzle is solved
+
+        row, col = empty
+        shape = self.shapes[row][col]
+        shape_size = sum(row.count(shape) for row in self.shapes)
+
+        for num in range(1, shape_size + 1):
+            if self._is_valid(row, col, num):
+                self.solution[row][col] = num
+                if self.brute_force_solve():
+                    return True
+                self.solution[row][col] = 0  # Backtrack
+
+        return False
+
+    def _is_valid(self, row, col, num):
+        #Claude for brute force
+        # Check shape size
+        shape = self.shapes[row][col]
+        shape_size = sum(row.count(shape) for row in self.shapes)
+        if num > shape_size:
+            return False
+
+        # Check if number already exists in shape
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.shapes[r][c] == shape and self.solution[r][c] == num:
+                    return False
+
+        # Check adjacent cells
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < self.rows and 0 <= nc < self.cols and self.solution[nr][nc] == num:
+                return False
+
+        return True
+
+    def _find_empty(self):
+        #claude for brute force
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.solution[r][c] == 0:
+                    return (r, c)
+        return None
+
+
+
 
 #SIMPLE HELPER FUNCTIONS, NOT NEEDING TO BE PART OF A CLASS
 def add_coords(coord1, coord2, offset=(0, 0)):
@@ -272,10 +348,23 @@ def add_coords(coord1, coord2, offset=(0, 0)):
 
 
 if __name__ == '__main__':
+    print (sys.version)
     puzzle=Puzzle(8,5)
-    print(puzzle.values)
+
+
     print(puzzle.ALL_SHAPE_PERMUTATIONS)
     puzzle.generate_grid_shapes()
+    #puzzle.dump_shapes()
+    puzzle.brute_force_solve()
+    puzzle.dump_solution()
 
 
+    start_time=time.time()
+    puzzle = Puzzle(8, 5)
+    puzzle.generate_grid_shapes()
+    puzzle.dump_shapes()
+    print (f"time to generate grid {round(time.time()-start_time,3)}")
+    puzzle.brute_force_solve()
+    print (f"time to solution {round(time.time()-start_time,3)}")
+    puzzle.dump_solution()
 

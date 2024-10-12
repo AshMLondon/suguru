@@ -38,7 +38,8 @@
                     <input type="text" name="R{{r}}C{{c}}"></input>
                     {%endif%}
                 {%else%}
-                    {{puzzle.shapes[r][c]}}
+                    {#{{puzzle.shapes[r][c]}}#}
+                    {{puzzle.solution[r][c]}}
                 {%endif%}
             </td>
     {% endfor %}

@@ -16,10 +16,13 @@ app.jinja_env.lstrip_blocks = True
 @app.route("/")
 def just_a_little_starting_thing():
 
-    puzzle=Puzzle(6,10)
+    puzzle=Puzzle(5,7)
     puzzle.generate_grid_shapes()
     puzzle.color_shapes()
+    puzzle.brute_force_solve()
+    puzzle.values=puzzle.solution
     return render_template("puzzle_template.html",puzzle=puzzle)
+
 
 
 
