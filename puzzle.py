@@ -1,8 +1,10 @@
 #Puzzle
 #This file aiming to refactor suguru into a tidier, class based approach
 
-import random, time, json, pprint
+import random, time, json
+from pprint import pprint
 import sys
+from collections import defaultdict
 
 class Puzzle:
 
@@ -11,6 +13,8 @@ class Puzzle:
         #set dimensions of puzzle
         self.rows=rows
         self.cols=cols
+
+        self.iterate_part_timer=0
 
         #now create two blank (filled with zero) grids:
         #self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
@@ -26,6 +30,9 @@ class Puzzle:
         with open("shape_permutations.json", 'r') as f:
             tempdict = json.load(f)
         return tempdict
+
+    def clear_solution(self):
+        self.solution = [[0 for c in range(self.cols)] for r in range(self.rows)]  # values ie only 1-5 possible, in each cell
 
 
 
@@ -52,6 +59,19 @@ class Puzzle:
     def dump_shapes(self):
         for row in self.shapes:
             print(row)
+
+    def dump_both(self):
+        for r in range(self.rows):
+            poss = []
+            for c in range (self.cols):
+                if self.solution[r][c]==0:
+                    poss.append(len(self.cell_possibles[r,c]))
+                else:
+                    poss.append(0)
+
+            #print(self.shapes[r],"   ",self.solution[r]," ... ",poss)
+            print( self.solution[r], " ... ", poss)
+        print()
 
 
     def next_free_space_spiral(self,start_coord):
@@ -243,44 +263,135 @@ class Puzzle:
                 go+=1
                 shape_number+=1
 
-    def generate_dict_of_shapes(self):
+    def generate_shape_cells(self):
+        #create lookup: #dictionary of all shapes and cells in those shapes
+        self.shape_cells=defaultdict(list) #special type of dictionary that creates a list by default if key doesn't exist
+        for r in range(self.rows):
+            for c in range (self.cols):
+                self.shape_cells[self.shapes[r][c]].append((r,c))
+
+    def generate_linked_cells(self):
+        #this is an extended list - of all cells in the same shape and all other neighbours (incl diagonal) - for every cell
+        self.linked_cells=defaultdict(list)
+        move_directions=[(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+        for r in range(self.rows):
+            for c in range (self.cols):
+                this_shape=self.shapes[r][c]
+                cells_so_far=self.shape_cells[this_shape].copy()  #pull all cells in that shape
+                cells_so_far.remove((r,c))  #but now remove this cell, only want surrounding ones
+                for move_r,move_c in move_directions:
+                    new_r,new_c = r+move_r, c+move_c
+                    if 0<=new_r<self.rows and 0<=new_c<self.cols:
+                        if (new_r, new_c) not in cells_so_far:
+                            cells_so_far.append((new_r,new_c))
+                self.linked_cells[(r,c)]=cells_so_far
+
+    def initialise_cell_possibles(self):
+        #generate dict of all possible values at each shape [aka "the domain"]
+        self.cell_possibles={}
+        for r in range(self.rows):
+            for c in range (self.cols):
+                self.cell_possibles[(r,c)]=set(range(1,len(self.shape_cells[self.shapes[r][c]])+1))
+                #work out possibles by seeing how many cells in the r,c shape - generate a list starting with 1 up to that number and store in dictionary at r,c
+
+    def pick_next_empty_cell(self):
+        #function to find the next cell to iterate - which cell is empty and has fewest possible values
+        #using Claude's list comprehension - hopefully is efficient
+        starting_time_here=time.time()
+        #return min((cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0), key=lambda cell: len(self.cell_possibles[cell]),default=False)
+        next_cell= min((cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0), key=lambda cell: len(self.cell_possibles[cell]),default=False)
+        self.iterate_part_timer+=(time.time()-starting_time_here)
+        return next_cell
 
 
+    def generate_iteration_lookups(self):
+        #create all lookups needed to run iteration -- order is important as later ones depend on first
+        self.generate_shape_cells()
+        self.generate_linked_cells()
+        self.initialise_cell_possibles()
 
-    def better_solver(self):
-        print()
+    def better_solver(self,next=False):
         #ok let's start with some pseudo code working out what the hell we're going to do
         #first off we probably need to set up some useful variables to speed things up -- (quick lookup)
-        #list/dictionary of all shapes and cells in those shapes
-
-
-        #dict of every cell and what the neighbours are for those cells (quick lookup)
-
+        #list/dictionary of all shapes and cells in those shapes -done
+        #dict of every cell and what the neighbours are for those cells (quick lookup) - done
         #next we need to work out what values are possible in every cell [apparently aka domain in constraint lingo]
         #to start with this is just how many spaces in that shapes - later we will start eliminating based on solution values
+        #DONE
 
         #now let's start thinking about our iterative, recursive / trackback (whch ?!?) approach
 
         #let's work out which cell to work on
         #first off call a function that finds the next empty cell that has the fewest possible values
 
+        if next:  #if the next cell has already been given as a parameter
+            live_cell=next
+        else:
+            live_cell=self.pick_next_empty_cell()
+        #print(f"Next= {live_cell}")
+        if not live_cell:  #if there is no live cell returned, that's because we've done them all
+            return True
+
         #now start to loop  through all possible values for that cell
-        #set the value
-        #now let's see what impact that has, now we've added another number
 
-        #pull list of impacted cells - same shape + neighbours
-        #go through them all - if any are same value, remove that value, but note which cell we're removing from
-        #save list of modified cells
+        for num in self.cell_possibles[live_cell]:
+            #set the value
+            self.set_solution(live_cell,num)
+            #self.dump_both()
 
-        #if any of the cells now have zero possibilities - this is a bad solution
-        #undo all changes made so far
-        #carry on with the next number in the loop
-        #if we've run out of numbers -- then exit the function with a bad result
+            #now let's see what impact that has, now we've added another number
+            #pull list of impacted cells - same shape + neighbours
+            changes_made=[]
+            broken_it=False
+            single_location=False
+            for linked in self.linked_cells[live_cell]:
+                #go through them all - if any are same value, remove that value, but note which cell we're removing from
+                if num in self.cell_possibles[linked]:
+                    self.cell_possibles[linked].remove(num)
+                    #if len(self.cell_possibles[linked])==1:
+                    #    single_location=linked
+                    #tried this to speed up, but actually slightly slowed down by checking this too often
+                    changes_made.append((linked,num))
+                    if not self.cell_possibles[linked]:
+                        broken_it=True
+                        break
+                        #if we've got no possible left, that's wrong, stop this process
 
-        #[space here to optimise further by looking for any more cells that only have a single option after a new number added]
+            ##TEMP
+            #further quick check to see if anything now only has 1 possible
+            '''
+            for linked in self.linked_cells[live_cell]:
+                if len(self.cell_possibles[linked])==1 and self.get_solution(linked)==0:
+                    print (f"**SINGLE - live cell {live_cell}")
+                    self.dump_both()
+            '''
 
-        #having updated the possibilities -- now call the recursive function again
-        #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
+
+
+            #if any of the cells now have zero possibilities - this is a bad solution -- undo all changes made so far
+            #otherwise carry on with the next number in the loop
+
+            if not broken_it:
+                success=self.better_solver(next=single_location)
+                if success:
+                    return True   #finish off neatly, returning from function if successful
+
+            #if you get here, then something has gone wrong in iteration - reverse the changes
+            self.set_solution(live_cell,0)
+            for change in changes_made:
+                self.cell_possibles[change[0]].add(change[1])
+
+        #print ("DOWN")
+        #self.dump_both()
+        return False
+
+
+            #if we've run out of numbers -- then exit the function with a bad result
+
+            #[space here to optimise further by looking for any more cells that only have a single option after a new number added]
+
+            #having updated the possibilities -- now call the recursive function again
+            #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
 
 
 
@@ -300,13 +411,49 @@ class Puzzle:
         shape_size = sum(row.count(shape) for row in self.shapes)
 
         for num in range(1, shape_size + 1):
-            if self._is_valid(row, col, num):
+            if self._is_valid2(row, col, num):
                 self.solution[row][col] = num
                 if self.brute_force_solve():
                     return True
                 self.solution[row][col] = 0  # Backtrack
 
         return False
+
+
+
+    def is_whole_thing_valid(self):
+        #doesnt really work as cell itself triggers a problem
+        #also is valid v wasteful - looks at whole grid to check the shape
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if not self._is_valid2(r,c,self.solution[r][c]):
+                    print(f"Problem at ({r},{c}) with {self.solution[r][c]}")
+                    return False
+        return True
+
+    def _is_valid2(self, row, col, num):
+        #modifying Claude version to be more efficient and not fail if used after assignment
+        # Check shape size
+        shape = self.shapes[row][col]
+        this_shape_cells = self.shape_cells[shape]
+        shape_size = len(this_shape_cells)
+        if num > shape_size:
+            return False
+
+        # Check if number already exists in shape
+        for cell in this_shape_cells:
+            if cell != (row,col) and self.get_solution(cell)==  num:
+                #shape will included this cell, so don't trigger False just with that
+                    return False
+
+        # Check adjacent cells
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < self.rows and 0 <= nc < self.cols and self.solution[nr][nc] == num:
+                return False
+
+        #got this far, passed all checks
+        return True
 
     def _is_valid(self, row, col, num):
         #Claude for brute force
@@ -349,14 +496,56 @@ def add_coords(coord1, coord2, offset=(0, 0)):
 
 if __name__ == '__main__':
     print (sys.version)
-    puzzle=Puzzle(8,5)
+    puzzle=Puzzle(6,10)
 
-
-    print(puzzle.ALL_SHAPE_PERMUTATIONS)
+    #print(puzzle.ALL_SHAPE_PERMUTATIONS)
     puzzle.generate_grid_shapes()
-    #puzzle.dump_shapes()
+
+#    puzzle.shapes=[[7, 4, 5, 5, 5],[4, 4, 4, 2, 5],[6, 4, 2, 2, 2],[6, 6, 1, 2, 3],[6, 1, 1, 1, 3],[6, 8, 1, 3, 3]]
+    #puzzle.shapes=[    [14, 3, 4, 4, 4, 4, 5, 6, 6, 7],     [3, 3, 3, 4, 2, 5, 5, 5, 6, 7],     [12, 3, 1, 2, 2, 2, 5, 8, 6, 7],    [12, 1, 1, 1, 2, 11, 8, 8, 6, 7],    [12, 12, 1, 10, 11, 11, 8, 9, 9, 7],     [13, 12, 10, 10, 10, 10, 8, 9, 9, 9] ]
+    #puzzle.shapes=[    [13, 13, 3, 4, 4, 4, 4, 5, 6, 6],    [13, 3, 3, 3, 4, 2, 5, 5, 5, 6],    [12, 11, 3, 1, 2, 2, 2, 5, 7, 6],    [12, 11, 1, 1, 1, 2, 10, 7, 7, 6],    [12, 11, 11, 1, 9, 10, 10, 7, 8, 8],    [12, 12, 11, 9, 9, 9, 9, 7, 8, 8]]
+    #puzzle.shapes=[[13, 13, 3, 4, 4, 4, 4, 5, 6, 6], [13, 3, 3, 3, 4, 2, 5, 5, 5, 6], [11, 12, 3, 1, 2, 2, 2, 5, 7, 6], [11, 12, 1, 1, 1, 2, 8, 8, 7, 6], [11, 10, 10, 1, 8, 8, 8, 9, 7, 7], [11, 11, 10, 10, 10, 9, 9, 9, 9, 7]]
+    puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
+
+    print(puzzle.shapes)
+    print()
+    puzzle.dump_shapes()
+    print()
+
+
+    print()
+
+    start_time=time.time()
+
+    puzzle.generate_shape_cells()
+    #print(puzzle.shape_cells)
+    puzzle.generate_linked_cells()
+    #pprint (puzzle.linked_cells,compact=True)
+    puzzle.initialise_cell_possibles()
+    #pprint(puzzle.cell_possibles, compact=True)
+
+    success=puzzle.better_solver()
+    puzzle.dump_solution()
+    print("time taken - better",round(time.time()-start_time,3))
+    print("VALID?",puzzle.is_whole_thing_valid())
+    print("part time",puzzle.iterate_part_timer)
+
+    start_time=time.time()
+    puzzle.clear_solution()
     puzzle.brute_force_solve()
     puzzle.dump_solution()
+    print("time taken - brute force", round(time.time()-start_time,3))
+    print("VALID?", puzzle.is_whole_thing_valid())
+
+
+
+
+    exit()
+
+
+    puzzle.brute_force_solve()
+    puzzle.dump_solution()
+    puzzle.clear_solution()
 
 
     start_time=time.time()
