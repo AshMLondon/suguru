@@ -18,8 +18,9 @@ def just_a_little_starting_thing():
 
     puzzle=Puzzle(5,7)
     puzzle.generate_grid_shapes()
+    puzzle.generate_iteration_lookups()
     puzzle.color_shapes()
-    puzzle.brute_force_solve()
+    puzzle.better_solver()
     puzzle.values=puzzle.solution
     return render_template("puzzle_template.html",puzzle=puzzle)
 
