@@ -69,8 +69,12 @@ class Puzzle:
                 else:
                     poss.append(0)
 
+            shapes=self.shapes[r]
+            shapes_as_letters=[(chr(ord('@')+number)) for number in shapes]
+
             #print(self.shapes[r],"   ",self.solution[r]," ... ",poss)
-            print( self.solution[r], " ... ", poss)
+            print(shapes_as_letters,"   ",self.solution[r]," ... ",poss)
+            #print( self.solution[r], " ... ", poss)
         print()
 
 
@@ -294,14 +298,26 @@ class Puzzle:
                 self.cell_possibles[(r,c)]=set(range(1,len(self.shape_cells[self.shapes[r][c]])+1))
                 #work out possibles by seeing how many cells in the r,c shape - generate a list starting with 1 up to that number and store in dictionary at r,c
 
-    def pick_next_empty_cell(self):
+    def pick_next_empty_cell(self,previous=False):
         #function to find the next cell to iterate - which cell is empty and has fewest possible values
         #using Claude's list comprehension - hopefully is efficient
         starting_time_here=time.time()
         #return min((cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0), key=lambda cell: len(self.cell_possibles[cell]),default=False)
         next_cell= min((cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0), key=lambda cell: len(self.cell_possibles[cell]),default=False)
         self.iterate_part_timer+=(time.time()-starting_time_here)
-        return next_cell
+
+        force_number=False
+
+        if previous:
+            print("previous",previous)
+            if len(self.cell_possibles[next_cell])>1:
+                lonely,number= self.lonely_numbers_check_all_linked(previous)
+                if lonely:
+                    next_cell=lonely
+                    force_number=number
+                    print("LONELY - ",lonely,force_number)
+
+        return next_cell, force_number
 
 
     def generate_iteration_lookups(self):
@@ -310,7 +326,7 @@ class Puzzle:
         self.generate_linked_cells()
         self.initialise_cell_possibles()
 
-    def better_solver(self,next=False):
+    def better_solver(self,next=False, previous=False):
         #first, need to set up some useful variables to speed things up -- (quick lookup)
         #these done elsewhere:
         #-dictionary of all shapes and cells in those shapes -done
@@ -327,7 +343,7 @@ class Puzzle:
         if next:  #if the next cell has already been given as a parameter
             live_cell=next
         else:
-            live_cell=self.pick_next_empty_cell()
+            live_cell,force_number =self.pick_next_empty_cell(previous=previous)
         #print(f"Next= {live_cell}")
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
             return True
@@ -343,8 +359,9 @@ class Puzzle:
             #pull list of impacted cells - same shape + neighbours
             changes_made=[]
             broken_it=False
-            single_location=False
+
             for linked in self.linked_cells[live_cell]:
+                self.lonely_numbers_check_shape(self.get_shape(linked))  #TODO - remove
                 #go through them all - if any are same value, remove that value, but note which cell we're removing from
                 if num in self.cell_possibles[linked]:
                     self.cell_possibles[linked].remove(num)
@@ -372,7 +389,7 @@ class Puzzle:
             #otherwise carry on with the next number in the loop
 
             if not broken_it:
-                success=self.better_solver(next=single_location)
+                success=self.better_solver(previous=live_cell)   #send on current live cell to help with finding next cell to work on
                 if success:
                     return True   #finish off neatly, returning from function if successful
 
@@ -418,6 +435,42 @@ class Puzzle:
                 self.solution[row][col] = 0  # Backtrack
 
         return False
+
+
+    def lonely_numbers_check_all_linked(self,cell):
+        linked_shapes=set()
+        for linked in self.linked_cells:
+            linked_shapes.add(self.get_shape(linked))
+        for shape in linked_shapes:
+            result=self.lonely_numbers_check_shape(shape)
+            if result:
+                return result
+
+        return False, False
+
+    def lonely_numbers_check_shape(self,shape_number):
+        shape_cells=self.shape_cells[shape_number]
+        self.dump_both()
+        for num in range(1,len(shape_cells)+1):
+            count=0
+            possibles_in_shape=[]
+            last_found=False
+            for cell in shape_cells:
+                if self.get_solution(cell)==0:   #only check unsolved cells
+                    #possibles_in_shape.append((cell,self.cell_possibles[cell]))
+                    if num in self.cell_possibles[cell]:
+                        count+=1
+                        last_found=cell
+            if count==1:
+                print(f"found at cell {cell} size {len(shape_cells)} number {num} count {count}")
+                return last_found,num
+
+        return False
+
+
+
+
+
 
 
 
@@ -526,8 +579,8 @@ if __name__ == '__main__':
     #puzzle.generate_grid_shapes()
 
     #fairly short and quick
-    #puzzle = Puzzle(6, 5)
-    #puzzle.shapes=[[7, 4, 5, 5, 5],[4, 4, 4, 2, 5],[6, 4, 2, 2, 2],[6, 6, 1, 2, 3],[6, 1, 1, 1, 3],[6, 8, 1, 3, 3]]
+    puzzle = Puzzle(6, 5)
+    puzzle.shapes=[[7, 4, 5, 5, 5],[4, 4, 4, 2, 5],[6, 4, 2, 2, 2],[6, 6, 1, 2, 3],[6, 1, 1, 1, 3],[6, 8, 1, 3, 3]]
 
     #puzzle.shapes=[    [14, 3, 4, 4, 4, 4, 5, 6, 6, 7],     [3, 3, 3, 4, 2, 5, 5, 5, 6, 7],     [12, 3, 1, 2, 2, 2, 5, 8, 6, 7],    [12, 1, 1, 1, 2, 11, 8, 8, 6, 7],    [12, 12, 1, 10, 11, 11, 8, 9, 9, 7],     [13, 12, 10, 10, 10, 10, 8, 9, 9, 9] ]
     #puzzle.shapes=[    [13, 13, 3, 4, 4, 4, 4, 5, 6, 6],    [13, 3, 3, 3, 4, 2, 5, 5, 5, 6],    [12, 11, 3, 1, 2, 2, 2, 5, 7, 6],    [12, 11, 1, 1, 1, 2, 10, 7, 7, 6],    [12, 11, 11, 1, 9, 10, 10, 7, 8, 8],    [12, 12, 11, 9, 9, 9, 9, 7, 8, 8]]
@@ -536,8 +589,8 @@ if __name__ == '__main__':
 
 
     #this one takes about 15s and is unsolveable
-    puzzle = Puzzle(6, 10)
-    puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
+    #puzzle = Puzzle(6, 10)
+    #puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
 
     print(puzzle.shapes)
     print()
