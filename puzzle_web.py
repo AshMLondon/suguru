@@ -16,7 +16,7 @@ app.jinja_env.lstrip_blocks = True
 @app.route("/")
 def just_a_little_starting_thing():
 
-    puzzle=Puzzle(5,7)
+    puzzle=Puzzle(7,8)
     puzzle.generate_grid_shapes()
     puzzle.generate_iteration_lookups()
     puzzle.color_shapes()

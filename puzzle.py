@@ -15,6 +15,7 @@ class Puzzle:
         self.cols=cols
 
         self.iterate_part_timer=0
+        self.iteration_counter=0
 
         #now create two blank (filled with zero) grids:
         #self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
@@ -53,10 +54,12 @@ class Puzzle:
         self.shapes[coord[0]][coord[1]]=value
 
     def dump_solution(self):
+        print("SOLUTION")
         for row in self.solution:
             print(row)
 
     def dump_shapes(self):
+        print("SHAPES")
         for row in self.shapes:
             print(row)
 
@@ -298,7 +301,7 @@ class Puzzle:
                 self.cell_possibles[(r,c)]=set(range(1,len(self.shape_cells[self.shapes[r][c]])+1))
                 #work out possibles by seeing how many cells in the r,c shape - generate a list starting with 1 up to that number and store in dictionary at r,c
 
-    def pick_next_empty_cell(self,previous=False):
+    def pick_next_empty_cell(self,previous=False,use_lonely=False):
         #function to find the next cell to iterate - which cell is empty and has fewest possible values
         #using Claude's list comprehension - hopefully is efficient
         starting_time_here=time.time()
@@ -312,17 +315,15 @@ class Puzzle:
             return False, False
 
 
-        #previous=False #override
-
         #note: adding this lonely cell checker does seem to cut the time down - by maybe half
         #TODO think if there is any more efficient way of running it
 
-        if previous:
+        if use_lonely and previous:
             #print("previous",previous)
             if len(self.cell_possibles[next_cell])>1:
-                lonely,number= self.lonely_numbers_check_all_linked(previous)
-                if lonely:
-                    next_cell=lonely
+                lonely_cell,number= self.lonely_numbers_check_all_linked(previous)
+                if lonely_cell:
+                    next_cell=lonely_cell
                     force_number=number
                     #print("LONELY - ",lonely,force_number)
 
@@ -335,7 +336,11 @@ class Puzzle:
         self.generate_linked_cells()
         self.initialise_cell_possibles()
 
-    def better_solver(self,next=False, previous=False):
+    def better_solver(self, use_lonely=False):
+        self.iteration_counter=0
+        return self._better_solve_recursion(use_lonely=use_lonely)
+
+
         #first, need to set up some useful variables to speed things up -- (quick lookup)
         #these done elsewhere:
         #-dictionary of all shapes and cells in those shapes -done
@@ -349,13 +354,20 @@ class Puzzle:
         #let's work out which cell to work on
         #first off call a function that finds the next empty cell that has the fewest possible values
 
+
+
+
+    def _better_solve_recursion(self, next=False, previous=False, use_lonely=False):
+
         if next:  #if the next cell has already been given as a parameter
             live_cell=next
         else:
-            live_cell,force_number =self.pick_next_empty_cell(previous=previous)
+            live_cell,force_number = self.pick_next_empty_cell(previous=previous,use_lonely=use_lonely)
         #print(f"Next= {live_cell}")
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
             return True
+
+        self.iteration_counter+=1
 
         #now start to loop  through all possible values for that cell
 
@@ -405,7 +417,7 @@ class Puzzle:
             #otherwise carry on with the next number in the loop
 
             if not broken_it:
-                success=self.better_solver(previous=live_cell)   #send on current live cell to help with finding next cell to work on
+                success= self._better_solve_recursion(previous=live_cell,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
                 if success:
                     return True   #finish off neatly, returning from function if successful
 
@@ -438,6 +450,8 @@ class Puzzle:
         empty = self._find_empty()
         if not empty:
             return True  # Puzzle is solved
+
+        self.iteration_counter+=1
 
         row, col = empty
         shape = self.shapes[row][col]
@@ -573,7 +587,7 @@ class Puzzle:
         for x in list(self.cell_possibles[X]):
             if not any(x != y for y in self.cell_possibles[Y]):
                 self.cell_possibles[X].remove(x)
-                print(f"REMOVING {x} from {X}")
+                print(f"REMOVING {x} from {X} and leaving {self.cell_possibles[X]}")
                 revised = True
         return revised
 
@@ -595,8 +609,8 @@ if __name__ == '__main__':
     #puzzle.generate_grid_shapes()
 
     #fairly short and quick
-    #puzzle = Puzzle(6, 5)
-    #puzzle.shapes=[[7, 4, 5, 5, 5],[4, 4, 4, 2, 5],[6, 4, 2, 2, 2],[6, 6, 1, 2, 3],[6, 1, 1, 1, 3],[6, 8, 1, 3, 3]]
+    # puzzle = Puzzle(6, 5)
+    # puzzle.shapes=[[7, 4, 5, 5, 5],[4, 4, 4, 2, 5],[6, 4, 2, 2, 2],[6, 6, 1, 2, 3],[6, 1, 1, 1, 3],[6, 8, 1, 3, 3]]
 
     #puzzle.shapes=[    [14, 3, 4, 4, 4, 4, 5, 6, 6, 7],     [3, 3, 3, 4, 2, 5, 5, 5, 6, 7],     [12, 3, 1, 2, 2, 2, 5, 8, 6, 7],    [12, 1, 1, 1, 2, 11, 8, 8, 6, 7],    [12, 12, 1, 10, 11, 11, 8, 9, 9, 7],     [13, 12, 10, 10, 10, 10, 8, 9, 9, 9] ]
     #puzzle.shapes=[    [13, 13, 3, 4, 4, 4, 4, 5, 6, 6],    [13, 3, 3, 3, 4, 2, 5, 5, 5, 6],    [12, 11, 3, 1, 2, 2, 2, 5, 7, 6],    [12, 11, 1, 1, 1, 2, 10, 7, 7, 6],    [12, 11, 11, 1, 9, 10, 10, 7, 8, 8],    [12, 12, 11, 9, 9, 9, 9, 7, 8, 8]]
@@ -608,73 +622,60 @@ if __name__ == '__main__':
     #puzzle = Puzzle(6, 10)
     #puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
 
-    random.seed(12343)
-    puzzle = Puzzle(8,7)
-    puzzle.generate_grid_shapes()
+    # random.seed(55)
+    puzzle = Puzzle(6,8)
+
+    #nice example - brute force = 0.5mil, better= 0.48 mil,  better+ lonely=57 iterations!
+    puzzle.shapes=[[[4, 4, 3, 3, 3, 9, 9, 9], [4, 3, 3, 2, 9, 9, 10, 10], [4, 1, 2, 2, 2, 8, 8, 8], [1, 1, 1, 2, 8, 8, 7, 11], [6, 1, 5, 5, 5, 7, 7, 7], [6, 6, 6, 6, 5, 5, 7, 12]]]
+
+    # puzzle.generate_grid_shapes()
 
 
     print(puzzle.shapes)
     print()
     puzzle.dump_shapes()
     print()
-
-
-    print()
-
     puzzle.generate_iteration_lookups()
-    puzzle.dump_both()
-
-    start_time = time.time()
-    success=puzzle.better_solver()
-    puzzle.dump_solution()
-    print("time taken - better",round(time.time()-start_time,3))
-    print("VALID?",puzzle.is_whole_thing_valid())
-    print("part time",puzzle.iterate_part_timer)
-
-    puzzle.clear_solution()
-    puzzle.initialise_cell_possibles()
-
-    puzzle.dump_both()
+    # puzzle.dump_both()
 
 
-    start_time = time.time()
-    puzzle.ac3()
-    print("AC3",round(time.time()-start_time,3))
-
-    puzzle.iterate_part_timer = 0
-    start_time = time.time()
-    success=puzzle.better_solver()
-    puzzle.dump_solution()
-    print("time taken - better",round(time.time()-start_time,3))
-    print("VALID?",puzzle.is_whole_thing_valid())
-    print("part time",puzzle.iterate_part_timer)
-
-    exit()
-
+    #BRUTE FORCE FIRST
+    puzzle.iteration_counter = 0
     start_time=time.time()
-    puzzle.clear_solution()
     puzzle.brute_force_solve()
     puzzle.dump_solution()
     print("time taken - brute force", round(time.time()-start_time,3))
     print("VALID?", puzzle.is_whole_thing_valid())
+    print(f"iterations {puzzle.iteration_counter:,}")
+    print()
 
 
-
-
-    exit()
-
-
-    puzzle.brute_force_solve()
-    puzzle.dump_solution()
     puzzle.clear_solution()
-
-
-    start_time=time.time()
-    puzzle = Puzzle(8, 5)
-    puzzle.generate_grid_shapes()
-    puzzle.dump_shapes()
-    print (f"time to generate grid {round(time.time()-start_time,3)}")
-    puzzle.brute_force_solve()
-    print (f"time to solution {round(time.time()-start_time,3)}")
+    puzzle.iteration_counter = 0
+    start_time = time.time()
+    success= puzzle.better_solver()
     puzzle.dump_solution()
+    print("time taken - better",round(time.time()-start_time,3))
+    print("VALID?",puzzle.is_whole_thing_valid())
+    print("part time",puzzle.iterate_part_timer)
+    print(f"iterations {puzzle.iteration_counter:,}")
+    print()
+
+    puzzle.clear_solution()
+    puzzle.initialise_cell_possibles()
+    # puzzle.dump_both()
+    puzzle.iteration_counter=0
+    puzzle.iterate_part_timer = 0
+    start_time = time.time()
+    success= puzzle.better_solver(use_lonely=True)
+    puzzle.dump_solution()
+    print("time taken - better + lonely",round(time.time()-start_time,3))
+    print("VALID?",puzzle.is_whole_thing_valid())
+    print("part time",puzzle.iterate_part_timer)
+    print(f"iterations {puzzle.iteration_counter:,}")
+
+    #exit()
+
+
+
 
