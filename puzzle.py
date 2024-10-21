@@ -2,7 +2,6 @@
 #This file aiming to refactor suguru into a tidier, class based approach
 
 import random, time, json
-from pprint import pprint
 import sys
 from collections import defaultdict, deque
 
@@ -302,6 +301,17 @@ class Puzzle:
                 #work out possibles by seeing how many cells in the r,c shape - generate a list starting with 1 up to that number and store in dictionary at r,c
 
     def pick_next_empty_cell(self,previous=False,use_lonely=False):
+        """
+        Picks the next empty cell to fill, prioritizing the cell with the fewest possible values.
+
+        Args:
+        - previous: The previously filled cell.
+        - use_lonely: Whether to use the 'lonely' heuristic for cells with a single remaining possibility.
+
+        Returns:
+        A tuple containing the coordinates of the next cell and the forced number if applicable.
+        """
+
         #function to find the next cell to iterate - which cell is empty and has fewest possible values
         #using Claude's list comprehension - hopefully is efficient
         starting_time_here=time.time()
@@ -326,6 +336,38 @@ class Puzzle:
                     next_cell=lonely_cell
                     force_number=number
                     #print("LONELY - ",lonely,force_number)
+
+        return next_cell, force_number
+
+    def pick_next_empty_cell_GPT(self, previous=False, use_lonely=False):
+        #ChatGPT version with improvements - allegedly!
+        def cell_constraint_level(cell):
+            # Number of linked cells that have fewer possibilities
+            return sum(1 for linked in self.linked_cells[cell] if len(self.cell_possibles[linked]) < 2)
+
+        starting_time_here = time.time()
+        # Use both the number of possibles and the constraint level as heuristic
+        next_cell=min(
+            (cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0),
+            key=lambda cell: (len(self.cell_possibles[cell]), cell_constraint_level(cell)),
+            default=False
+        )
+        force_number = False
+
+        if not next_cell:
+            return False, False
+
+        # note: adding this lonely cell checker does seem to cut the time down - by maybe half
+        # TODO think if there is any more efficient way of running it
+
+        if use_lonely and previous:
+            # print("previous",previous)
+            if len(self.cell_possibles[next_cell]) > 1:
+                lonely_cell, number = self.lonely_numbers_check_all_linked(previous)
+                if lonely_cell:
+                    next_cell = lonely_cell
+                    force_number = number
+                    # print("LONELY - ",lonely,force_number)
 
         return next_cell, force_number
 
@@ -355,17 +397,126 @@ class Puzzle:
         #first off call a function that finds the next empty cell that has the fewest possible values
 
 
-
-
     def _better_solve_recursion(self, next=False, previous=False, use_lonely=False):
 
         if next:  #if the next cell has already been given as a parameter
             live_cell=next
         else:
-            live_cell,force_number = self.pick_next_empty_cell(previous=previous,use_lonely=use_lonely)
-        #print(f"Next= {live_cell}")
+            live_cell,force_number = self.pick_next_empty_cell_GPT(previous=previous,use_lonely=use_lonely)
+            #print(f"Next= {live_cell}, force number {force_number}")
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
             return True
+
+        self.iteration_counter+=1
+
+        #now start to loop  through all possible values for that cell
+
+        if force_number:
+            numbers_to_try=[force_number]
+
+        else:
+            numbers_to_try=self.cell_possibles[live_cell]
+
+
+        for num in numbers_to_try:
+            #set the value
+            self.set_solution(live_cell,num)
+            #self.dump_both()
+
+            #now let's see what impact that has, now we've added another number
+            #pull list of impacted cells - same shape + neighbours
+            changes_made=[]
+            broken_it=False
+
+            for linked in self.linked_cells[live_cell]:
+                #self.lonely_numbers_check_shape(self.get_shape(linked))  #TODO - remove
+                #go through them all - if any are same value, remove that value, but note which cell we're removing from
+                if num in self.cell_possibles[linked]:
+                    self.cell_possibles[linked].remove(num)
+                    #if len(self.cell_possibles[linked])==1:
+                    #    single_location=linked
+                    #tried this to speed up, but actually slightly slowed down by checking this too often
+                    changes_made.append((linked,num))
+                    if not self.cell_possibles[linked]:
+                        broken_it=True
+                        break
+                        #if we've got no possible left, that's wrong, stop this process
+
+            ##TEMP
+            #further quick check to see if anything now only has 1 possible
+            '''
+            for linked in self.linked_cells[live_cell]:
+                if len(self.cell_possibles[linked])==1 and self.get_solution(linked)==0:
+                    print (f"**SINGLE - live cell {live_cell}")
+                    self.dump_both()
+            '''
+
+
+
+            #if any of the cells now have zero possibilities - this is a bad solution -- undo all changes made so far
+            #otherwise carry on with the next number in the loop
+
+            if not broken_it:
+                success= self._better_solve_recursion(previous=live_cell,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
+                if success:
+                    return True   #finish off neatly, returning from function if successful
+
+            #if you get here, then something has gone wrong in iteration - reverse the changes
+            self.set_solution(live_cell,0)
+            for change in changes_made:
+                self.cell_possibles[change[0]].add(change[1])
+
+        #print ("DOWN")
+        #self.dump_both()
+        return False
+
+
+            #if we've run out of numbers -- then exit the function with a bad result
+
+            #[space here to optimise further by looking for any more cells that only have a single option after a new number added]
+
+            #having updated the possibilities -- now call the recursive function again
+            #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
+
+
+    def better_solver_multi(self, use_lonely=False):
+        # THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
+        # or more specifically check if solution is unique
+        self.iteration_counter=0
+        self.iteration_solutions_found=0
+        return self._better_solve_recursion(use_lonely=use_lonely)
+
+
+        #first, need to set up some useful variables to speed things up -- (quick lookup)
+        #these done elsewhere:
+        #-dictionary of all shapes and cells in those shapes -done
+        #-dict of every cell and what the neighbours are for those cells (quick lookup) - done
+        #-next we need to work out what values are possible in every cell [apparently aka domain in constraint lingo]
+        #to start with this is just how many spaces in that shapes - later we will start eliminating based on solution values
+        #DONE
+
+        #now let's start thinking about our iterative, recursive / trackback (whch ?!?) approach
+
+        #let's work out which cell to work on
+        #first off call a function that finds the next empty cell that has the fewest possible values
+
+
+    def _better_solve_multi_recursion(self, next=False, previous=False, use_lonely=False):
+        #THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
+        #or more specifically check if solution is unique
+
+        if next:  #if the next cell has already been given as a parameter
+            live_cell=next
+        else:
+            live_cell,force_number = self.pick_next_empty_cell_GPT(previous=previous,use_lonely=use_lonely)
+            #print(f"Next= {live_cell}, force number {force_number}")
+        if not live_cell:  #if there is no live cell returned, that's because we've done them all
+            #NEW BIT -- SOLUTION FOUND, DON'T JUST SIMPLY RETURN
+            self.iteration_solutions_found+=1
+            print ("solution #",self.iteration_solutions_found)
+            self.dump_solution()
+            return False
+            #return True
 
         self.iteration_counter+=1
 
@@ -444,29 +595,6 @@ class Puzzle:
 
 
 
-    def brute_force_solve(self):
-        #This method and a few functions it uses were generated by Claude AI
-        #but like Claude said, it is slow once you have anything but a small grid
-        empty = self._find_empty()
-        if not empty:
-            return True  # Puzzle is solved
-
-        self.iteration_counter+=1
-
-        row, col = empty
-        shape = self.shapes[row][col]
-        shape_size = sum(row.count(shape) for row in self.shapes)
-
-        for num in range(1, shape_size + 1):
-            if self._is_valid2(row, col, num):
-                self.solution[row][col] = num
-                if self.brute_force_solve():
-                    return True
-                self.solution[row][col] = 0  # Backtrack
-
-        return False
-
-
     def lonely_numbers_check_all_linked(self,cell):
         linked_shapes=set()
         for linked in self.linked_cells:
@@ -505,14 +633,18 @@ class Puzzle:
 
 
     def is_whole_thing_valid(self):
-        #doesnt really work as cell itself triggers a problem
-        #also is valid v wasteful - looks at whole grid to check the shape
+        #double check the end solution is valid (Shouldn't really need)
         for r in range(self.rows):
             for c in range(self.cols):
                 if not self._is_valid2(r,c,self.solution[r][c]):
                     print(f"Problem at ({r},{c}) with {self.solution[r][c]}")
                     return False
         return True
+
+
+
+
+
 
     def _is_valid2(self, row, col, num):
         #modifying Claude version to be more efficient and not fail if used after assignment
@@ -538,6 +670,49 @@ class Puzzle:
         #got this far, passed all checks
         return True
 
+
+
+
+
+    #LESS USEFUL --
+
+
+
+    def brute_force_solve(self):
+        #This method and a few functions it uses were generated by Claude AI
+        #but like Claude said, it is slow once you have anything but a small grid
+        empty = self._find_empty()
+        if not empty:
+            return True  # Puzzle is solved
+
+        self.iteration_counter+=1
+
+        row, col = empty
+        shape = self.shapes[row][col]
+        shape_size = sum(row.count(shape) for row in self.shapes)
+
+        for num in range(1, shape_size + 1):
+            if self._is_valid2(row, col, num):
+                self.solution[row][col] = num
+                if self.brute_force_solve():
+                    return True
+                self.solution[row][col] = 0  # Backtrack
+
+        return False
+
+    def _find_empty(self):
+        #claude for brute force
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.solution[r][c] == 0:
+                    return (r, c)
+        return None
+
+
+
+#DUMPING GROUND -- DON'T THINK THIS STUFF IS SO USEFUL
+
+
     def _is_valid(self, row, col, num):
         #Claude for brute force
         # Check shape size
@@ -560,13 +735,6 @@ class Puzzle:
 
         return True
 
-    def _find_empty(self):
-        #claude for brute force
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.solution[r][c] == 0:
-                    return (r, c)
-        return None
 
     def ac3(self):
         #from claude - don't yet understand
@@ -622,13 +790,14 @@ if __name__ == '__main__':
     #puzzle = Puzzle(6, 10)
     #puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
 
-    # random.seed(55)
+    random.seed(11)
     puzzle = Puzzle(6,8)
+    puzzle.generate_grid_shapes()
 
     #nice example - brute force = 0.5mil, better= 0.48 mil,  better+ lonely=57 iterations!
-    puzzle.shapes=[[[4, 4, 3, 3, 3, 9, 9, 9], [4, 3, 3, 2, 9, 9, 10, 10], [4, 1, 2, 2, 2, 8, 8, 8], [1, 1, 1, 2, 8, 8, 7, 11], [6, 1, 5, 5, 5, 7, 7, 7], [6, 6, 6, 6, 5, 5, 7, 12]]]
+    #puzzle.shapes=[[4, 4, 3, 3, 3, 9, 9, 9], [4, 3, 3, 2, 9, 9, 10, 10], [4, 1, 2, 2, 2, 8, 8, 8], [1, 1, 1, 2, 8, 8, 7, 11], [6, 1, 5, 5, 5, 7, 7, 7], [6, 6, 6, 6, 5, 5, 7, 12]]
 
-    # puzzle.generate_grid_shapes()
+
 
 
     print(puzzle.shapes)
@@ -639,16 +808,15 @@ if __name__ == '__main__':
     # puzzle.dump_both()
 
 
-    #BRUTE FORCE FIRST
-    puzzle.iteration_counter = 0
-    start_time=time.time()
-    puzzle.brute_force_solve()
-    puzzle.dump_solution()
-    print("time taken - brute force", round(time.time()-start_time,3))
-    print("VALID?", puzzle.is_whole_thing_valid())
-    print(f"iterations {puzzle.iteration_counter:,}")
-    print()
-
+    # #BRUTE FORCE FIRST
+    # puzzle.iteration_counter = 0
+    # start_time=time.time()
+    # puzzle.brute_force_solve()
+    # puzzle.dump_solution()
+    # print("time taken - brute force", round(time.time()-start_time,3))
+    # print("VALID?", puzzle.is_whole_thing_valid())
+    # print(f"iterations {puzzle.iteration_counter:,}")
+    # print()
 
     puzzle.clear_solution()
     puzzle.iteration_counter = 0
