@@ -484,7 +484,7 @@ class Puzzle:
         # or more specifically check if solution is unique
         self.iteration_counter=0
         self.iteration_solutions_found=0
-        return self._better_solve_recursion(use_lonely=use_lonely)
+        return self._better_solve_multi_recursion(use_lonely=use_lonely)
 
 
         #first, need to set up some useful variables to speed things up -- (quick lookup)
@@ -511,10 +511,13 @@ class Puzzle:
             live_cell,force_number = self.pick_next_empty_cell_GPT(previous=previous,use_lonely=use_lonely)
             #print(f"Next= {live_cell}, force number {force_number}")
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
+
+
             #NEW BIT -- SOLUTION FOUND, DON'T JUST SIMPLY RETURN
             self.iteration_solutions_found+=1
             print ("solution #",self.iteration_solutions_found)
             self.dump_solution()
+            print("solution VALID?", puzzle.is_whole_thing_valid())
             return False
             #return True
 
@@ -568,7 +571,7 @@ class Puzzle:
             #otherwise carry on with the next number in the loop
 
             if not broken_it:
-                success= self._better_solve_recursion(previous=live_cell,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
+                success= self._better_solve_multi_recursion(previous=live_cell,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
                 if success:
                     return True   #finish off neatly, returning from function if successful
 
@@ -790,7 +793,7 @@ if __name__ == '__main__':
     #puzzle = Puzzle(6, 10)
     #puzzle.shapes=[[5, 5, 3, 3, 3, 2, 11, 11, 11, 15], [5, 3, 3, 1, 2, 2, 2, 10, 11, 11], [5, 4, 1, 1, 1, 2, 10, 10, 10, 12], [4, 4, 4, 1, 9, 9, 8, 10, 12, 12], [7, 4, 6, 6, 6, 8, 8, 8, 12, 13], [7, 7, 7, 7, 6, 6, 8, 14, 12, 13]]
 
-    random.seed(11)
+    #random.seed(11)
     puzzle = Puzzle(6,8)
     puzzle.generate_grid_shapes()
 
@@ -818,16 +821,16 @@ if __name__ == '__main__':
     # print(f"iterations {puzzle.iteration_counter:,}")
     # print()
 
-    puzzle.clear_solution()
-    puzzle.iteration_counter = 0
-    start_time = time.time()
-    success= puzzle.better_solver()
-    puzzle.dump_solution()
-    print("time taken - better",round(time.time()-start_time,3))
-    print("VALID?",puzzle.is_whole_thing_valid())
-    print("part time",puzzle.iterate_part_timer)
-    print(f"iterations {puzzle.iteration_counter:,}")
-    print()
+    # puzzle.clear_solution()
+    # puzzle.iteration_counter = 0
+    # start_time = time.time()
+    # success= puzzle.better_solver()
+    # puzzle.dump_solution()
+    # print("time taken - better",round(time.time()-start_time,3))
+    # print("VALID?",puzzle.is_whole_thing_valid())
+    # print("part time",puzzle.iterate_part_timer)
+    # print(f"iterations {puzzle.iteration_counter:,}")
+    # print()
 
     puzzle.clear_solution()
     puzzle.initialise_cell_possibles()
@@ -841,9 +844,25 @@ if __name__ == '__main__':
     print("VALID?",puzzle.is_whole_thing_valid())
     print("part time",puzzle.iterate_part_timer)
     print(f"iterations {puzzle.iteration_counter:,}")
+    print()
+    print()
 
     #exit()
 
+    #NOW TRY WITH UNIQUENESS SOLVER
+    puzzle.clear_solution()
+    puzzle.initialise_cell_possibles()
+    # puzzle.dump_both()
+    puzzle.iteration_counter = 0
+    puzzle.iterate_part_timer = 0
+    start_time = time.time()
+    success = puzzle.better_solver_multi(use_lonely=True)
+    print("Success?", success)
+    puzzle.dump_solution()
+    print("time taken - UNIQUENESS", round(time.time() - start_time, 3))
+    print("VALID?", puzzle.is_whole_thing_valid())
+    print("part time", puzzle.iterate_part_timer)
+    print(f"iterations {puzzle.iteration_counter:,}")
 
 
 
