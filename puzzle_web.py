@@ -20,7 +20,9 @@ def just_a_little_starting_thing():
     puzzle.generate_grid_shapes()
     puzzle.generate_iteration_lookups()
     puzzle.color_shapes()
-    puzzle.better_solver()
+    success=puzzle.better_solver()
+    if success:
+        puzzle.build_up_givens()
     puzzle.values=puzzle.solution
     return render_template("puzzle_template.html",puzzle=puzzle)
 

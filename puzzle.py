@@ -1,6 +1,6 @@
 #Puzzle
 #This file aiming to refactor suguru into a tidier, class based approach
-
+import copy
 import random, time, json
 import sys
 from collections import defaultdict, deque
@@ -292,13 +292,27 @@ class Puzzle:
                             cells_so_far.append((new_r,new_c))
                 self.linked_cells[(r,c)]=cells_so_far
 
-    def initialise_cell_possibles(self):
+    def initialise_cell_possibles(self,full_check=False):
         #generate dict of all possible values at each shape [aka "the domain"]
         self.cell_possibles={}
         for r in range(self.rows):
             for c in range (self.cols):
                 self.cell_possibles[(r,c)]=set(range(1,len(self.shape_cells[self.shapes[r][c]])+1))
                 #work out possibles by seeing how many cells in the r,c shape - generate a list starting with 1 up to that number and store in dictionary at r,c
+
+        if full_check:
+            #expect to use this when a partial solution in place - modify possibles accordingly
+            for r in range(self.rows):
+                for c in range(self.cols):
+                    #print(r,c)
+                    if self.solution[r][c]!=0:
+                        #only bother with non-zero values
+                        num=self.solution[r][c]
+                        for linked in self.linked_cells[(r,c)]:
+                            if num in self.cell_possibles[linked]:
+                                self.cell_possibles[linked].remove(num)
+
+
 
     def pick_next_empty_cell(self,previous=False,use_lonely=False):
         """
@@ -480,6 +494,7 @@ class Puzzle:
 
 
     def better_solver_multi(self, use_lonely=False):
+        #TODO: add a unique check parameter
         # THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
         # or more specifically check if solution is unique
         self.iteration_counter=0
@@ -512,14 +527,21 @@ class Puzzle:
             #print(f"Next= {live_cell}, force number {force_number}")
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
 
+            #NEW BIT -- UNIQUENESS TESTER, DON'T JUST SIMPLY RETURN
+            self.iteration_solutions_found += 1
 
-            #NEW BIT -- SOLUTION FOUND, DON'T JUST SIMPLY RETURN
-            self.iteration_solutions_found+=1
-            print ("solution #",self.iteration_solutions_found)
-            self.dump_solution()
-            print("solution VALID?", puzzle.is_whole_thing_valid())
-            return False
-            #return True
+
+
+            if self.iteration_solutions_found==1:
+                print ("First Solution Found")
+                self.dump_solution()
+                print("solution VALID?", self.is_whole_thing_valid())
+                self.first_trial_solution=copy.deepcopy(self.solution)
+                return False
+            else:
+                print ("Second solution found")
+                self.dump_solution()
+                return True
 
         self.iteration_counter+=1
 
@@ -591,6 +613,64 @@ class Puzzle:
 
             #having updated the possibilities -- now call the recursive function again
             #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
+
+
+    def build_up_givens(self):
+        #assume we already have a shapes grid that is solveable
+
+
+        #START  by working out some "givens" - numbers that are given and pre-filled at the start
+        self.givens= [[0 for c in range (self.cols)] for r in range(self.rows)]
+        #these are a random pick from the original solution
+        givens_to_give=7
+        print("DUMPING SOLUTION - SHOULDNT BE EMPTY")
+        self.dump_solution()
+
+        for g in range(givens_to_give):
+            r=random.randint(0,self.rows-1)
+            c=random.randint(0,self.cols-1)
+            #print(f"GG R {r} C {c}")
+            if self.givens[r][c]==0:
+                self.givens[r][c]=self.solution[r][c]
+
+        print(self.givens)
+
+        #NEXT let's see if this solution is unique - if not we need to add more givens
+
+        keep_going=True
+
+        while keep_going:
+            self.solution=copy.deepcopy(self.givens)
+            #print("Givens",self.givens)
+            self.dump_solution()
+            self.initialise_cell_possibles(full_check=True)
+
+            success=self.better_solver_multi()
+            if not success:
+                print ("HOPEFULLY FINISHED? -- DIDN'T GET CLEAN SOLVE SECOND TIME")
+                keep_going=False
+            self.dump_solution()
+
+            #ok, looks like solution is not unique
+            #now work out where the two solutions are different
+
+            diff = [[0 if self.first_trial_solution[r][c]==self.solution[r][c] else self.solution[r][c] for c in range (self.cols) ] for r in range(self.rows)]
+            print("DIFF",diff)
+
+            #next up we need to add (at least) one of those differences to our givens and retry
+
+            stop_rc_loop=False
+            for r in range(self.rows):
+                for c in range(self.cols):
+                    if self.first_trial_solution[r][c]!=self.solution[r][c]:
+                        self.givens[r][c]=self.first_trial_solution[r][c]
+                        stop_rc_loop=True
+                        break
+                if stop_rc_loop:
+                    break
+
+
+
 
 
 
@@ -847,7 +927,19 @@ if __name__ == '__main__':
     print()
     print()
 
-    #exit()
+    if not success:
+        exit()
+
+    # NOW TRY WITH UNIQUENESS SOLVER  --- BUILD METHOD
+    start_time = time.time()
+    puzzle.build_up_givens()
+    print("time taken - BUILD", round(time.time() - start_time, 3))
+    print("VALID?", puzzle.is_whole_thing_valid())
+    print("part time", puzzle.iterate_part_timer)
+    print(f"iterations {puzzle.iteration_counter:,}")
+
+
+    exit()
 
     #NOW TRY WITH UNIQUENESS SOLVER
     puzzle.clear_solution()
