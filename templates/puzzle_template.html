@@ -30,17 +30,20 @@
                 {%endif%}
             {% endfor %}
             ;">
-                {%if False%}
+                {%if display_shapes%}
+
+
+                    {puzzle.shapes[r][c]}
+                    {#{{puzzle.solution[r][c]}#}
+                {%else%}
                      {%if puzzle.values[r][c]>0%}
                     <span class="given">
-                    {{puzzle.values[r][c]}}
+                    {{puzzle.solution[r][c]}}
                     </span>
                     {%else%}
                     <input type="text" name="R{{r}}C{{c}}"></input>
                     {%endif%}
-                {%else%}
-                    {#{{puzzle.shapes[r][c]}}#}
-                    {{puzzle.solution[r][c]}}
+
                 {%endif%}
             </td>
     {% endfor %}
