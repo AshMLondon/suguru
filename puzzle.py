@@ -20,6 +20,7 @@ class Puzzle:
         #self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
         self.solution= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
         self.shapes= [[0 for c in range (cols)] for r in range(rows)]   #shape number that cell belongs to - defines shapes within the grid
+        self.givens = [[0 for c in range(cols)] for r in range(rows)]  # values ie only 1-5 possible, in each cell
 
         #load the lookup table of all possible shapes and their permutations
         #this has been previously generated from trial and error - and then doing a rotation of each etc - see gridgenerate create shape permutations and translate shapes
@@ -110,8 +111,8 @@ class Puzzle:
             if not any_in_bounds:
                 return None  # spiral reached outside so stop
 
-    def color_shapes(self):
-        shape_colors = {}
+    def colour_shapes(self):
+        shape_colours = {}
         shape_cells = {}
 
         # Group cells by shape
@@ -134,15 +135,15 @@ class Puzzle:
         # Color shapes
         for shape in shape_cells:
             adjacent_shapes = get_adjacent_shapes(shape)
-            adjacent_colors = {shape_colors[adj] for adj in adjacent_shapes if adj in shape_colors}
+            adjacent_colors = {shape_colours[adj] for adj in adjacent_shapes if adj in shape_colours}
             for color in range(1, 7):  # We only need to check up to 4 colors #yeah, but it's a bit boring!!
                 if color not in adjacent_colors:
-                    shape_colors[shape] = color
+                    shape_colours[shape] = color
                     break
 
 
-        self.shape_colours=shape_colors
-        return shape_colors
+        self.shape_colours=shape_colours
+        return shape_colours
 
 
     def generate_grid_shapes(self):
@@ -623,8 +624,8 @@ class Puzzle:
         self.givens= [[0 for c in range (self.cols)] for r in range(self.rows)]
         #these are a random pick from the original solution
         givens_to_give=7
-        print("DUMPING SOLUTION - SHOULDNT BE EMPTY")
-        self.dump_solution()
+        #print("DUMPING SOLUTION - SHOULDNT BE EMPTY")
+        #self.dump_solution()
 
         for g in range(givens_to_give):
             r=random.randint(0,self.rows-1)
@@ -646,29 +647,35 @@ class Puzzle:
             self.initialise_cell_possibles(full_check=True)
 
             success=self.better_solver_multi()
+            #TODO - only have one function and just tell it whether to do multi or not
+            #success here means multiple solutions, fail = only one probably?
             if not success:
                 print ("HOPEFULLY FINISHED? -- DIDN'T GET CLEAN SOLVE SECOND TIME")
                 keep_going=False
-            self.dump_solution()
 
-            #ok, looks like solution is not unique
-            #now work out where the two solutions are different
+            else:
+                #self.dump_solution()
 
-            diff = [[0 if self.first_trial_solution[r][c]==self.solution[r][c] else self.solution[r][c] for c in range (self.cols) ] for r in range(self.rows)]
-            print("DIFF",diff)
+                #ok, looks like solution is not unique
+                #now work out where the two solutions are different
 
-            #next up we need to add (at least) one of those differences to our givens and retry
+                diff = [[0 if self.first_trial_solution[r][c]==self.solution[r][c] else self.solution[r][c] for c in range (self.cols) ] for r in range(self.rows)]
+                print("DIFF",diff)
 
-            stop_rc_loop=False
-            for r in range(self.rows):
-                for c in range(self.cols):
-                    if self.first_trial_solution[r][c]!=self.solution[r][c]:
-                        self.givens[r][c]=self.first_trial_solution[r][c]
-                        stop_rc_loop=True
+                #next up we need to add (at least) one of those differences to our givens and retry
+
+                stop_rc_loop=False
+                for r in range(self.rows):
+                    for c in range(self.cols):
+                        if self.first_trial_solution[r][c]!=self.solution[r][c]:
+                            self.givens[r][c]=self.first_trial_solution[r][c]
+                            stop_rc_loop=True
+                            break
+                    if stop_rc_loop:
                         break
-                if stop_rc_loop:
-                    break
 
+        #reached end of While loop
+        self.solution=self.first_trial_solution
 
 
 

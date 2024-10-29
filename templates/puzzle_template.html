@@ -31,17 +31,40 @@
             {% endfor %}
             ;">
                 {%if display_shapes%}
-
-
                     {puzzle.shapes[r][c]}
-                    {#{{puzzle.solution[r][c]}#}
+                {%elif True%}
+
+                    {%if puzzle.givens[r][c]>0%}
+                    <span class="given">
+                    {{puzzle.givens[r][c]}}
+                    </span>
+                    {%else%}
+                    {%if guesses%}
+                    {%if guesses[r][c]>0%}
+                        <input type="text" name="R{{r}}C{{c}}" value="{{guesses[r][c]}}"
+                               {%if guesses[r][c]!= puzzle.solution[r][c]%}
+                                class="error"
+                                {%endif%}
+                        ></input>
+                    {%else%}
+                        <input type="text" name="R{{r}}C{{c}}"></input>
+                    {%endif%}
+                    {%else%}
+                    <input type="text" name="R{{r}}C{{c}}"></input>
+                    {%endif%}
+                    {%endif%}
+
+
+
+
                 {%else%}
-                     {%if puzzle.values[r][c]>0%}
+                     {%if puzzle.solution[r][c]>0%}
                     <span class="given">
                     {{puzzle.solution[r][c]}}
                     </span>
                     {%else%}
                     <input type="text" name="R{{r}}C{{c}}"></input>
+
                     {%endif%}
 
                 {%endif%}
@@ -56,8 +79,8 @@
 <p><input type="submit" value="Check"/></p>
 </form>
 
-    {%if text_output%}
-    {{text_output}}
+    {%if message%}
+    {{message}}
     {%endif%}
 
 {%else%}
