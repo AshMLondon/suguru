@@ -494,13 +494,15 @@ class Puzzle:
             #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
 
 
-    def better_solver_multi(self, use_lonely=False):
+    def better_solver_multi(self, multi=False, use_lonely=True):
+        #multi=flag whether to look for multiple solutions
+        #use_lonely = flag whether to try to look ahead for search options where one number only possible in one place in a shape
         #TODO: add a unique check parameter
         # THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
         # or more specifically check if solution is unique
         self.iteration_counter=0
         self.iteration_solutions_found=0
-        return self._better_solve_multi_recursion(use_lonely=use_lonely)
+        return self._better_solve_multi_recursion(multi=multi, use_lonely=use_lonely)
 
 
         #first, need to set up some useful variables to speed things up -- (quick lookup)
@@ -517,7 +519,7 @@ class Puzzle:
         #first off call a function that finds the next empty cell that has the fewest possible values
 
 
-    def _better_solve_multi_recursion(self, next=False, previous=False, use_lonely=False):
+    def _better_solve_multi_recursion(self, next=False, previous=False, multi=False, use_lonely=False):
         #THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
         #or more specifically check if solution is unique
 
@@ -526,23 +528,30 @@ class Puzzle:
         else:
             live_cell,force_number = self.pick_next_empty_cell_GPT(previous=previous,use_lonely=use_lonely)
             #print(f"Next= {live_cell}, force number {force_number}")
+
+
         if not live_cell:  #if there is no live cell returned, that's because we've done them all
 
-            #NEW BIT -- UNIQUENESS TESTER, DON'T JUST SIMPLY RETURN
-            self.iteration_solutions_found += 1
-
-
-
-            if self.iteration_solutions_found==1:
-                print ("First Solution Found")
-                self.dump_solution()
-                print("solution VALID?", self.is_whole_thing_valid())
-                self.first_trial_solution=copy.deepcopy(self.solution)
-                return False
-            else:
-                print ("Second solution found")
-                self.dump_solution()
+            if not multi:
                 return True
+
+            else:
+
+                #NEW BIT -- UNIQUENESS TESTER, DON'T JUST SIMPLY RETURN
+                self.iteration_solutions_found += 1
+
+                if self.iteration_solutions_found==1:
+                    print ("First Solution Found")
+                    self.dump_solution()
+                    print("solution VALID?", self.is_whole_thing_valid())
+                    self.first_trial_solution=copy.deepcopy(self.solution)
+                    #now return False so we keep going with the search
+                    return False
+                else:
+                    print ("Second solution found")
+                    self.dump_solution()
+                    #we can stop here, so return True (we don't want more than one)
+                    return True
 
         self.iteration_counter+=1
 
@@ -594,7 +603,7 @@ class Puzzle:
             #otherwise carry on with the next number in the loop
 
             if not broken_it:
-                success= self._better_solve_multi_recursion(previous=live_cell,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
+                success= self._better_solve_multi_recursion(previous=live_cell,multi=multi,use_lonely=use_lonely)  #send on current live cell to help with finding next cell to work on
                 if success:
                     return True   #finish off neatly, returning from function if successful
 
@@ -646,7 +655,7 @@ class Puzzle:
             self.dump_solution()
             self.initialise_cell_possibles(full_check=True)
 
-            success=self.better_solver_multi()
+            success=self.better_solver_multi(multi=True)
             #TODO - only have one function and just tell it whether to do multi or not
             #success here means multiple solutions, fail = only one probably?
             if not success:
