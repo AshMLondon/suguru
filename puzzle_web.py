@@ -20,7 +20,7 @@ def just_a_little_starting_thing():
     puzzle.generate_grid_shapes()
     puzzle.generate_iteration_lookups()
     puzzle.colour_shapes()
-    success=puzzle.better_solver_multi(multi=False)  #look for single solution to begin
+    success= puzzle.better_solver(multi=False)  #look for single solution to begin
     if success:
         puzzle.build_up_givens()
     puzzle.values=puzzle.solution
