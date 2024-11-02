@@ -132,6 +132,8 @@ class Puzzle:
                         adjacent.add(self.shapes[nr][nc])
             return adjacent
 
+
+
         # Color shapes
         for shape in shape_cells:
             adjacent_shapes = get_adjacent_shapes(shape)
@@ -146,8 +148,17 @@ class Puzzle:
         return shape_colours
 
 
-    def generate_grid_shapes(self):
+    def generate_grid_shapes(self,single_cell_stop=True):
         #function to generate a full grid of shapes - based on pre-loaded shapes (and permutations)
+
+        def get_adjacent_cells(cell_coords):
+            adjacent = set()
+            r,c=cell_coords
+            for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.rows and 0 <= nc < self.cols:
+                    adjacent.add((nr,nc))
+            return adjacent
 
         # random choice of start -  biased to middle third
         start_point = (
@@ -171,6 +182,9 @@ class Puzzle:
         #if it fits, save the shape number in every cell -- move on with the loop -- move to next point, using spiral
         #(if it doesn't keep trying)
         #if you run out of options, start all over again
+
+        # working_shape_list_longer=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:9])
+        # working_shape_list_shorter=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:9])
 
         keep_going=True
         while keep_going:
@@ -209,40 +223,48 @@ class Puzzle:
                                 # so long as at least one sideways escape route, that's ok
                                 # otherwise fail this shape
 
-                            ''' 
+
                             #single cell stop stuff - can add in later    
                             if single_cell_stop:
                                     if valid:
                                         # first establish affected cells
                                         affected_cells = set()
                                         shape_try_adjusted = []
+
                                         for coord in shape_to_try:
-                                            adjusted_coord = add_coords(coord, new_point, home_coord_offset)
+                                            # recalculate what the actual coordinates of the candidate shape are (we did this earlier, but probably not worth saving?)
+                                            #first what is individual coordinate - need to use that for affected cells
+                                            adjusted_coord = add_coords(coord, active_point, home_coord_offset)
+                                            # then see which cells are affected (adjacent) to each of those
+                                            affected_cells.update(get_adjacent_cells(adjusted_coord))  #which cells are sideways neighbours but within bounds
+                                            #also keep tabs of whole shape - as cells that are already in the shape don't class as 'affected'
                                             shape_try_adjusted.append(adjusted_coord)
-                                            affected_cells.update(get_sideways_neighbours(adjusted_coord))
+
+                                            #TODO: QUESTION SHOULD THIS BE ADD NOT UPDATE?
     
                                         for coord in affected_cells:
-                                            if coord not in shape_try_adjusted and grid_shapes[
-                                                coord] == 0:  # don't check members of prospective shape itself and affected cell needs to be empty
-                                                sideways_neighbours = get_sideways_neighbours(coord)
+                                            if coord not in shape_try_adjusted and self.get_shape(coord) == 0:  # don't check members of prospective shape itself and affected cell needs to be empty not part of existing shape
+                                                #now for every affected cell -- check all of their surrounding cells to see if blocked off
+                                                sideways_neighbours = get_adjacent_cells(coord)
                                                 empty_before_shape = 0
                                                 empty_after_shape = 0
                                                 # logic that follows - we need affected shapes to have at least 1 blank - after the shape has gone in (if had 0 before that's ok)
                                                 for nb in sideways_neighbours:
-                                                    if grid_shapes[nb] == 0:
+                                                    if self.get_shape(nb) == 0:
                                                         empty_before_shape += 1
                                                         if nb not in shape_try_adjusted:
                                                             empty_after_shape += 1
                                                 if empty_after_shape == 0 and empty_before_shape != 0:
                                                     single_cell_count += 1
-                                                    if single_cell_count > single_cell_max:  # allow *some*
+                                                    if single_cell_count > 2:  # allow *some*
                                                         # TODO check how close?
+                                                        # TODO Maybe check if this single cell shares a neighbouring shape with the others?
                                                         valid = False
                                                         # print (f"**single cell**  affected cell {coord} -- emptybefore  {empty_before_shape}  emptyafter {empty_after_shape}")
                                                         break
     
                                         # print (f"shape number {shape_number}-- valid {valid} -- shape coords {shape_try_adjusted} ** affected cells: {affected_cells}")
-                            '''
+
 
                         if valid: break
                     if valid: break
@@ -533,7 +555,7 @@ class Puzzle:
         #START  by working out some "givens" - numbers that are given and pre-filled at the start
         self.givens= [[0 for c in range (self.cols)] for r in range(self.rows)]
         #these are a random pick from the original solution
-        givens_to_give=7
+        givens_to_give=5
         #print("DUMPING SOLUTION - SHOULDNT BE EMPTY")
         #self.dump_solution()
 
@@ -549,6 +571,7 @@ class Puzzle:
         #NEXT let's see if this solution is unique - if not we need to add more givens
 
         keep_going=True
+        #self.first_trial_solution=self.solution
 
         while keep_going:
             self.solution=copy.deepcopy(self.givens)
