@@ -183,15 +183,20 @@ class Puzzle:
         #(if it doesn't keep trying)
         #if you run out of options, start all over again
 
-        # working_shape_list_longer=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:9])
-        # working_shape_list_shorter=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:9])
+        print("ASP",self.ALL_SHAPE_PERMUTATIONS)
+        working_shape_list_longer=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:14])
+        working_shape_list_shorter=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[15:18])
+
 
         keep_going=True
         while keep_going:
 
             if verbose: print(f"Goes {go} Active Point",active_point)
 
-            for shape_name, shape_permutations in self.ALL_SHAPE_PERMUTATIONS:
+            random.shuffle(working_shape_list_longer)
+            working_full_shape_list = working_shape_list_longer + working_shape_list_shorter
+
+            for shape_name, shape_permutations in working_full_shape_list:
                 if verbose: print("*****SHAPE:", shape_name)
 
                 random.shuffle(shape_permutations)
