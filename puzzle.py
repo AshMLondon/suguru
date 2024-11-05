@@ -3,6 +3,7 @@
 import copy
 import random, time, json
 import sys
+from pprint import pprint
 from collections import defaultdict, deque
 
 class Puzzle:
@@ -28,6 +29,7 @@ class Puzzle:
         self.ALL_SHAPE_PERMUTATIONS=self.load_all_shape_permutations()
 
     def load_all_shape_permutations(self):
+        #original shapes come from gridgenerate.py - create_shape_permutations_and_save_to_file()
         with open("shape_permutations.json", 'r') as f:
             tempdict = json.load(f)
         return tempdict
@@ -183,18 +185,61 @@ class Puzzle:
         #(if it doesn't keep trying)
         #if you run out of options, start all over again
 
-        print("ASP",self.ALL_SHAPE_PERMUTATIONS)
-        working_shape_list_longer=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:14])
-        working_shape_list_shorter=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[15:18])
+        #print("All Shapes - length",len(self.ALL_SHAPE_PERMUTATIONS),self.ALL_SHAPE_PERMUTATIONS)
+
+        shapes_as_dict={s[0]:s[1] for s in self.ALL_SHAPE_PERMUTATIONS}
+        #print(shapes_as_dict.keys())
+        #print("ASD",shapes_as_dict)
+
+        shape_pref_order=['snail','steps','gun','L','line-5','seahorse', 'cross', 'T', 'snake', 'S'] #from an experiment
+
+        working_shape_list_longer=[]
+        for shape_name in shape_pref_order:
+            working_shape_list_longer.append([shape_name,shapes_as_dict[shape_name]])
+
+        working_shape_list_top=working_shape_list_longer[0:6]
+        working_shape_list_mid = working_shape_list_longer[6:]
+        working_shape_list_top_original=copy.deepcopy(working_shape_list_top)
+
+
+
+        #originally longer is 0to14-so say 0:15 // shorter 15,  then 12>>
+        #working_shape_list_longer=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[0:12])
+        working_shape_list_shorter=copy.deepcopy(self.ALL_SHAPE_PERMUTATIONS[10:])
+
+        # test=self.ALL_SHAPE_PERMUTATIONS[self.ALL_SHAPE_PERMUTATIONS.index("snail")]
+        # print("TT",test)
+
 
 
         keep_going=True
+        #MAIN SHAPE LOOP
         while keep_going:
 
-            if verbose: print(f"Goes {go} Active Point",active_point)
+            if verbose:
+                print(f"Goes {go} Active Point",active_point)
+                self.dump_shapes()
 
-            random.shuffle(working_shape_list_longer)
-            working_full_shape_list = working_shape_list_longer + working_shape_list_shorter
+            if go%2==0:
+                random.shuffle(working_shape_list_top)
+                # top_one=working_shape_list_top[:1]
+                # working_shape_list_top=working_shape_list_top[1:]+top_one
+                #print(working_shape_list_top)
+                random.shuffle(working_shape_list_mid)
+
+                if go%4==0:
+                    working_shape_list_top=copy.deepcopy(working_shape_list_top_original)
+
+            front_load=[]
+            if go==0:
+                front_load.append(random.choice(working_shape_list_shorter))
+            working_full_shape_list = front_load + working_shape_list_top + working_shape_list_mid + working_shape_list_shorter
+            #print(working_full_shape_list)
+            # working_full_shape_list=front_load
+            # working_full_shape_list.extend(working_shape_list_longer)
+            # working_full_shape_list.extend(working_shape_list_shorter)
+
+            #pprint(working_full_shape_list)
 
             for shape_name, shape_permutations in working_full_shape_list:
                 if verbose: print("*****SHAPE:", shape_name)
@@ -429,6 +474,8 @@ class Puzzle:
         # or more specifically check if solution is unique
         self.iteration_counter=0
         self.iteration_solutions_found=0
+        self.iteration_start_Time=time.time()
+        self.iteration_timeout = False
         return self._better_solve_recursion(multi=multi, use_lonely=use_lonely)
 
 
@@ -449,6 +496,11 @@ class Puzzle:
     def _better_solve_recursion(self, next=False, previous=False, multi=False, use_lonely=False):
         #THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
         #or more specifically check if solution is unique
+
+        if time.time()-self.iteration_start_Time>1:
+            self.iteration_timeout=True
+            return False
+
 
         if next:  #if the next cell has already been given as a parameter
             live_cell=next
@@ -653,12 +705,37 @@ class Puzzle:
 
         return False
 
+    def smaller_surrounded_check_all(self):
+        #look at the shapes and see if any cells are completely surrounded by a shape (realistically 4 or less)
+        #(meaning all cells of that shape touch them)
+        #if so, can remove numbers 1-X (X=size)  from possibles list for those cells
+        for shape in self.shape_cells.values():
+            if len(shape)>1 and len(shape)<5:
+                self.surround_check_one_shape(shape)
 
-
-
-
-
-
+    def surround_check_one_shape(self, shape):
+        # print (shape)
+        match_all = set()
+        first_cell = True
+        for cell in shape:
+            linked = set(self.linked_cells[cell])
+            neighbours_only = linked.difference(shape)
+            if first_cell:
+                first_cell = False
+                match_all = neighbours_only
+            else:
+                # keep tabs of cells that are connected to all shapes (so use intersection of sets)
+                match_all = match_all.intersection(neighbours_only)
+                if not match_all:
+                    break  # no need to continue if the union is empty - won't be others that touch  all
+        if match_all:
+            # we have found one or more cells that is 'surrounded' - now remove possibles
+            shape_len = len(shape)
+            print(f"SURR match {match_all} orig shape {shape} length {shape_len}")
+            for cell in match_all:
+                for n in range(1, shape_len + 1):
+                    self.cell_possibles[cell].discard(n)
+                    # use discard rather than remove in case the cell connected doesn't have enough numbers
 
     def is_whole_thing_valid(self):
         #double check the end solution is valid (Shouldn't really need)
@@ -799,6 +876,36 @@ def add_coords(coord1, coord2, offset=(0, 0)):
 
 if __name__ == '__main__':
     print (sys.version)
+    scores=defaultdict(int)
+    overall_start_time=time.time()
+
+    for n in range(1000):
+        puzzle = Puzzle(7, 8)
+        random.seed(100+n)
+        puzzle.generate_grid_shapes()
+        puzzle.generate_iteration_lookups()
+        start_time=time.time()
+        success = puzzle.better_solver(multi=False)
+        result_to_print="none"
+        if success:
+            result_to_print="SOLUTION"
+        elif puzzle.iteration_timeout:
+            result_to_print="timeout"
+        scores[result_to_print]+=1
+
+        print(f"#{n} {result_to_print} {puzzle.iteration_counter} {time.time()-start_time}")
+
+
+    print(scores)
+    print("total time", time.time()-overall_start_time)
+
+    quit()
+
+
+
+
+
+
     #puzzle=Puzzle(6,10)
 
     #print(puzzle.ALL_SHAPE_PERMUTATIONS)

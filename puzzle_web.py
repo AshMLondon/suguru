@@ -1,7 +1,7 @@
 ## Web App
 
+import random
 from flask import Flask, render_template, request,session, json
-
 from puzzle import Puzzle
 
 
@@ -17,13 +17,19 @@ app.jinja_env.lstrip_blocks = True
 def just_a_little_starting_thing():
 
     puzzle=Puzzle(7,8)
+    random.seed(2)
     puzzle.generate_grid_shapes()
     puzzle.generate_iteration_lookups()
+    puzzle.smaller_surrounded_check_all()  #***
     puzzle.colour_shapes()
     success= puzzle.better_solver(multi=False)  #look for single solution to begin
+    print("Success?",success, "iterations",puzzle.iteration_counter, "Timeout?",puzzle.iteration_timeout)
+
     if success:
         puzzle.build_up_givens()
     puzzle.values=puzzle.solution
+
+    return render_template("puzzle_template.html", puzzle=puzzle)
 
 
     #save completed puzzle in session that can be reloaded next time we come back for a page
