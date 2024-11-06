@@ -548,6 +548,8 @@ class Puzzle:
             self.set_solution(live_cell,num)
             #self.dump_both()
 
+
+            #FORWARD LOOK / IMPACT CHECKER
             #now let's see what impact that has, now we've added another number
             #pull list of impacted cells - same shape + neighbours
             changes_made=[]
@@ -566,6 +568,12 @@ class Puzzle:
                         broken_it=True
                         break
                         #if we've got no possible left, that's wrong, stop this process
+
+            if not broken_it:
+                #work out which shape the live cell is in and send
+                broken_it,more_changes=self.surround_check_one_shape(self.shape_cells[self.get_shape(live_cell)], iterating=True)
+                changes_made.extend(more_changes)
+
 
             ##TEMP
             #further quick check to see if anything now only has 1 possible
@@ -713,29 +721,56 @@ class Puzzle:
             if len(shape)>1 and len(shape)<5:
                 self.surround_check_one_shape(shape)
 
-    def surround_check_one_shape(self, shape):
+    def surround_check_one_shape(self, shape, iterating=False):
+        #TODO *****6/11/24
+        #adding this function in has led to some puzzles showing as no solution, when they were being solved before - why?
+        #(it does seem to speed things up in some cases though)
+
         # print (shape)
         match_all = set()
+        removed_list=[]
+        broken_it = False  #flag for  if removing possibles leaves to none left
         first_cell = True
         for cell in shape:
-            linked = set(self.linked_cells[cell])
-            neighbours_only = linked.difference(shape)
-            if first_cell:
-                first_cell = False
-                match_all = neighbours_only
-            else:
-                # keep tabs of cells that are connected to all shapes (so use intersection of sets)
-                match_all = match_all.intersection(neighbours_only)
-                if not match_all:
-                    break  # no need to continue if the union is empty - won't be others that touch  all
+            if self.get_solution(cell)==0:  #only interested in blank cells (filled ones looked at elsewhere)
+                linked = set(self.linked_cells[cell])
+                neighbours_only = linked.difference(shape)
+                if first_cell:
+                    first_cell = False
+                    match_all = neighbours_only
+                else:
+                    # keep tabs of cells that are connected to all shapes (so use intersection of sets)
+                    match_all = match_all.intersection(neighbours_only)
+                    if not match_all:
+                        break  # no need to continue if the union is empty - won't be others that touch  all
         if match_all:
             # we have found one or more cells that is 'surrounded' - now remove possibles
-            shape_len = len(shape)
-            print(f"SURR match {match_all} orig shape {shape} length {shape_len}")
+            shape_len=len(shape)
+            if iterating:
+                # print("!")
+                numbers_to_remove=set(range(1,len(shape)+1)) #start with full set of numbers
+                for c in shape:
+                    if self.get_solution(c)!=0:
+                        numbers_to_remove.remove(self.get_solution(c))
+                        #er, bit confusing - remove from the remove list - ie one less number to remove from possibles
+                # print(f"IT-SURR match {match_all} orig shape {shape} numbers to remove {numbers_to_remove} length {shape_len}")
+
+            else:
+                #if running at very start, just remove all numbers up to length of shape
+                numbers_to_remove = range(1, len(shape)+1)
+                # print(f"SURR match {match_all} orig shape {shape} length {shape_len}")
             for cell in match_all:
-                for n in range(1, shape_len + 1):
-                    self.cell_possibles[cell].discard(n)
-                    # use discard rather than remove in case the cell connected doesn't have enough numbers
+                for n in numbers_to_remove:
+                    if n in self.cell_possibles[cell]:
+                        self.cell_possibles[cell].remove(n)
+                        removed_list.append((cell,n))
+                if not self.cell_possibles[cell]:
+                    broken_it=True
+                    return (broken_it,removed_list)
+
+                    break
+
+        return (False,removed_list)
 
     def is_whole_thing_valid(self):
         #double check the end solution is valid (Shouldn't really need)

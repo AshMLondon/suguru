@@ -23,11 +23,14 @@ def generate_results(count=False):
 
 
     for n in range(count):
+        print()
+        print("**PUZZLE SETUP**")
         puzzle = Puzzle(7, 8)
         random.seed(1000 + n)
         puzzle.generate_grid_shapes()
         puzzle.generate_iteration_lookups()
         puzzle.smaller_surrounded_check_all()
+        print("----SOLVING---")
         start_time = time.time()
         success = puzzle.better_solver(multi=False)
         result_to_print = "none"
