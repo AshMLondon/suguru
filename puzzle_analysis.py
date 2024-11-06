@@ -44,6 +44,7 @@ def generate_results(count=False):
             total_iters+=puzzle.iteration_counter
 
         print(f"#{n} {result_to_print} {puzzle.iteration_counter} {time.time() - start_time}")
+        print("VALIDITY CHECK",puzzle.is_whole_thing_valid())
         this_result={
             "number":n, "result":result_to_print, "time":time.time()-start_time,
             "shapes":puzzle.shapes, "shape_cells":puzzle.shape_cells

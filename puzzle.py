@@ -559,15 +559,17 @@ class Puzzle:
                 #self.lonely_numbers_check_shape(self.get_shape(linked))  #TODO - remove
                 #go through them all - if any are same value, remove that value, but note which cell we're removing from
                 if num in self.cell_possibles[linked]:
-                    self.cell_possibles[linked].remove(num)
-                    #if len(self.cell_possibles[linked])==1:
-                    #    single_location=linked
-                    #tried this to speed up, but actually slightly slowed down by checking this too often
-                    changes_made.append((linked,num))
-                    if not self.cell_possibles[linked]:
-                        broken_it=True
-                        break
-                        #if we've got no possible left, that's wrong, stop this process
+                    if self.get_solution(linked)==0:  #only remove possibles from blank cells (not solved ones, which will have 1 residual possible)
+                        self.cell_possibles[linked].remove(num)
+                        #if len(self.cell_possibles[linked])==1:
+                        #    single_location=linked
+                        #tried this to speed up, but actually slightly slowed down by checking this too often
+                        changes_made.append((linked,num))
+                        if not self.cell_possibles[linked]:
+                            broken_it=True
+                            break
+                            #if we've got no possible left, that's wrong, stop this process
+
 
             if not broken_it:
                 #work out which shape the live cell is in and send
@@ -754,16 +756,18 @@ class Puzzle:
                         numbers_to_remove.remove(self.get_solution(c))
                         #er, bit confusing - remove from the remove list - ie one less number to remove from possibles
                 # print(f"IT-SURR match {match_all} orig shape {shape} numbers to remove {numbers_to_remove} length {shape_len}")
-
             else:
                 #if running at very start, just remove all numbers up to length of shape
                 numbers_to_remove = range(1, len(shape)+1)
                 # print(f"SURR match {match_all} orig shape {shape} length {shape_len}")
+
             for cell in match_all:
                 for n in numbers_to_remove:
-                    if n in self.cell_possibles[cell]:
-                        self.cell_possibles[cell].remove(n)
-                        removed_list.append((cell,n))
+                    if n in self.cell_possibles[cell]:  #need to make sure cell is blank (as I leave the last possible in a completed cell)
+                        if self.get_solution(cell)==0:
+                            self.cell_possibles[cell].remove(n)
+                            removed_list.append((cell,n))
+
                 if not self.cell_possibles[cell]:
                     broken_it=True
                     return (broken_it,removed_list)
