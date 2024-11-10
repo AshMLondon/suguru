@@ -16,6 +16,7 @@ class Puzzle:
 
         self.iterate_part_timer=0
         self.iteration_counter=0
+        self.iteration_timeout_limit=1 #seconds
 
         #now create two blank (filled with zero) grids:
         #self.values= [[0 for c in range (cols)] for r in range(rows)]   #values ie only 1-5 possible, in each cell
@@ -499,7 +500,7 @@ class Puzzle:
         #THIS VERSION TRIES TO FIND MULTIPLE SOLUTIONS
         #or more specifically check if solution is unique
 
-        if time.time()-self.iteration_start_Time>1:
+        if time.time()-self.iteration_start_Time>self.iteration_timeout_limit:
             self.iteration_timeout=True
             return False
 
@@ -618,7 +619,10 @@ class Puzzle:
 
 
     def build_up_givens(self):
-        #assume we already have a shapes grid that is solveable
+        #check we already have a full solution saved in solution variable
+        for row in self.solution:
+            if 0 in row:
+                raise Exception("Using build-up but solution is not complete")
 
 
         #START  by working out some "givens" - numbers that are given and pre-filled at the start
@@ -628,32 +632,43 @@ class Puzzle:
         #print("DUMPING SOLUTION - SHOULDNT BE EMPTY")
         #self.dump_solution()
 
+        build_up_log=[]   #use to report what we've done
+
+        givens_added=0
         for g in range(givens_to_give):
             r=random.randint(0,self.rows-1)
             c=random.randint(0,self.cols-1)
             #print(f"GG R {r} C {c}")
             if self.givens[r][c]==0:
                 self.givens[r][c]=self.solution[r][c]
+                givens_added+=1
 
-        print(self.givens)
+        #print(self.givens)
+        build_up_log.append(f"Givens added {givens_added}")
 
         #NEXT let's see if this solution is unique - if not we need to add more givens
 
+        try_no=0
         keep_going=True
         #self.first_trial_solution=self.solution
 
         while keep_going:
+            try_no += 1
             self.solution=copy.deepcopy(self.givens)
             #print("Givens",self.givens)
-            self.dump_solution()
+            #self.dump_solution()
             self.initialise_cell_possibles(full_check=True)
 
             success= self.better_solver(multi=True)
             #TODO - only have one function and just tell it whether to do multi or not
             #success here means multiple solutions, fail = only one probably?
             if not success:
-                print ("HOPEFULLY FINISHED? -- DIDN'T GET CLEAN SOLVE SECOND TIME")
-                keep_going=False
+                keep_going = False
+                if self.iteration_timeout:
+                    raise Exception("**TIMED OUT IN BUILDUP**")
+                else:
+                    #print ("HOPEFULLY FINISHED? -- DIDN'T GET CLEAN SOLVE SECOND TIME")
+                    keep_going=False
 
             else:
                 #self.dump_solution()
@@ -662,22 +677,30 @@ class Puzzle:
                 #now work out where the two solutions are different
 
                 diff = [[0 if self.first_trial_solution[r][c]==self.solution[r][c] else self.solution[r][c] for c in range (self.cols) ] for r in range(self.rows)]
-                print("DIFF",diff)
+                #print("DIFF",diff)
 
                 #next up we need to add (at least) one of those differences to our givens and retry
 
+                #TODO: could randomise this
                 stop_rc_loop=False
                 for r in range(self.rows):
                     for c in range(self.cols):
                         if self.first_trial_solution[r][c]!=self.solution[r][c]:
                             self.givens[r][c]=self.first_trial_solution[r][c]
+                            build_up_log.append(f"added {r,c}")
                             stop_rc_loop=True
                             break
                     if stop_rc_loop:
                         break
 
+
+
         #reached end of While loop
+        build_up_log.append(f"used {try_no} goes - so {try_no-1} extra givens")
+        print(build_up_log)
+
         self.solution=self.first_trial_solution
+        #METHOD END
 
 
 
@@ -921,6 +944,8 @@ if __name__ == '__main__':
     puzzle = Puzzle(7, 8)
     n=101
     keepgoing=True
+    puzzle.iteration_timeout_limit=10 #to allow for debugging
+
     while keepgoing:
         random.seed(n)
         puzzle.generate_grid_shapes()
@@ -932,9 +957,13 @@ if __name__ == '__main__':
             keepgoing=False
         else:
             n+=1
-        puzzle.dump_both()
-        puzzle.build_up_givens()
-        puzzle.dump_both()
+    puzzle.dump_both()
+    puzzle.build_up_givens()
+    puzzle.dump_both()
+    print(puzzle.givens)
+
+    #now let's try to see if we can solve this using logic alone
+
 
 
 
