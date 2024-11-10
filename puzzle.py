@@ -227,7 +227,7 @@ class Puzzle:
                 #print(working_shape_list_top)
                 random.shuffle(working_shape_list_mid)
 
-                if go%4==0:
+                if go%6==99:
                     working_shape_list_top=copy.deepcopy(working_shape_list_top_original)
 
             front_load=[]
@@ -240,6 +240,8 @@ class Puzzle:
             # working_full_shape_list.extend(working_shape_list_shorter)
 
             #pprint(working_full_shape_list)
+
+
 
             for shape_name, shape_permutations in working_full_shape_list:
                 if verbose: print("*****SHAPE:", shape_name)
@@ -915,6 +917,32 @@ def add_coords(coord1, coord2, offset=(0, 0)):
 
 if __name__ == '__main__':
     print (sys.version)
+
+    puzzle = Puzzle(7, 8)
+    n=101
+    keepgoing=True
+    while keepgoing:
+        random.seed(n)
+        puzzle.generate_grid_shapes()
+        puzzle.generate_iteration_lookups()
+        start_time = time.time()
+        success = puzzle.better_solver(multi=False)
+        print(n,success)
+        if success:
+            keepgoing=False
+        else:
+            n+=1
+        puzzle.dump_both()
+        puzzle.build_up_givens()
+        puzzle.dump_both()
+
+
+
+    quit()
+
+
+    #MOSTLY WHAT FOLLOWS ARE LITLE EXPERIMENTS
+
     scores=defaultdict(int)
     overall_start_time=time.time()
 

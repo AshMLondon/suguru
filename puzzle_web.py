@@ -17,7 +17,7 @@ app.jinja_env.lstrip_blocks = True
 def just_a_little_starting_thing():
 
     puzzle=Puzzle(7,8)
-    random.seed(2)
+    # random.seed(2)
     puzzle.generate_grid_shapes()
     puzzle.generate_iteration_lookups()
     puzzle.smaller_surrounded_check_all()  #***
@@ -29,7 +29,7 @@ def just_a_little_starting_thing():
         puzzle.build_up_givens()
     puzzle.values=puzzle.solution
 
-    return render_template("puzzle_template.html", puzzle=puzzle)
+    # return render_template("puzzle_template.html", puzzle=puzzle)
 
 
     #save completed puzzle in session that can be reloaded next time we come back for a page
@@ -41,6 +41,39 @@ def just_a_little_starting_thing():
 
 
     return render_template("puzzle_template.html",puzzle=puzzle)
+
+@app.route("/load")
+def run_thru_saved():
+
+
+    puzzle=Puzzle(7,8)
+    with open("grids_7x8","r" ) as file:
+        all_puzzles_dict=json.load(file)
+
+
+    puzzle_counter= int(request.args.get("n",0))
+
+
+
+    puzzles_dict=all_puzzles_dict[puzzle_counter]
+    print(puzzles_dict)
+
+    puzzle.shapes=puzzles_dict["shapes"]
+    puzzle.solutions=puzzles_dict["solution"]
+    puzzle.givens=puzzles_dict["givens"]
+
+    puzzle.generate_iteration_lookups()
+    puzzle.colour_shapes()
+
+    #save completed puzzle in session that can be reloaded next time we come back for a page
+    session["size"]=(puzzle.rows,puzzle.cols)
+    session["shapes"]=puzzle.shapes
+    session["solution"]=puzzle.solution
+    session["givens"]=puzzle.givens
+    session["colour_allocation"]= puzzle.shape_colours
+
+
+    return render_template("puzzle_template.html",puzzle=puzzle,puzzle_counter=puzzle_counter)
 
 
 

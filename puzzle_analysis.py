@@ -19,6 +19,7 @@ def generate_results(count=False):
         count=20
 
     results=[]
+    success_to_save=[]
 
 
 
@@ -26,11 +27,11 @@ def generate_results(count=False):
         print()
         print("**PUZZLE SETUP**")
         puzzle = Puzzle(7, 8)
-        random.seed(1000 + n)
+        random.seed(100 + n)
         puzzle.generate_grid_shapes()
         puzzle.generate_iteration_lookups()
         puzzle.smaller_surrounded_check_all()
-        print("----SOLVING---")
+        #print("----SOLVING---")
         start_time = time.time()
         success = puzzle.better_solver(multi=False)
         result_to_print = "none"
@@ -50,6 +51,15 @@ def generate_results(count=False):
             "shapes":puzzle.shapes, "shape_cells":puzzle.shape_cells
         }
         results.append(this_result)
+
+        if success:
+            success_to_save.append({"shapes":puzzle.shapes,"solution":puzzle.solution,"givens":puzzle.givens})
+
+    filename1=f"grids_{puzzle.rows}x{puzzle.cols}"
+    with open(filename1, "a") as file:
+        json.dump(success_to_save,file,indent=2)
+
+
 
 
 
@@ -154,7 +164,7 @@ def rebase(shape):
 
 if __name__ == '__main__':
     print (sys.version)
-    generate_results(20)
+    generate_results(50)
     #analyse_results()
 
 
