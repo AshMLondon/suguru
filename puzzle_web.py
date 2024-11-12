@@ -1,6 +1,6 @@
 ## Web App
 
-import random
+import random, copy
 from flask import Flask, render_template, request,session, json
 from puzzle import Puzzle
 
@@ -16,6 +16,7 @@ app.jinja_env.lstrip_blocks = True
 @app.route("/")
 def just_a_little_starting_thing():
 
+    random.seed(101)
     puzzle=Puzzle(7,8)
     # random.seed(2)
     puzzle.generate_grid_shapes()
@@ -27,7 +28,9 @@ def just_a_little_starting_thing():
 
     if success:
         puzzle.build_up_givens()
-    puzzle.values=puzzle.solution
+
+
+
 
     # return render_template("puzzle_template.html", puzzle=puzzle)
 
@@ -76,6 +79,19 @@ def run_thru_saved():
     return render_template("puzzle_template.html",puzzle=puzzle,puzzle_counter=puzzle_counter)
 
 
+@app.route("/logic")
+def run_logic_check():
+
+    puzzle = load_from_session()
+    puzzle.generate_iteration_lookups()
+
+    puzzle.original_solution = copy.deepcopy(puzzle.solution)
+    puzzle.solution = copy.deepcopy(puzzle.givens)
+    puzzle.logic_only_solver()
+    puzzle.givens = copy.deepcopy(puzzle.solution)
+    puzzle.solution = copy.deepcopy(puzzle.original_solution)
+
+    return render_template("puzzle_template.html", puzzle=puzzle)
 
 
 @app.route("/check_valid",methods=['GET', 'POST'])
@@ -84,14 +100,10 @@ def check_valid():
     #first re-load the puzzle
     #TODO - add error message if you get here without saved session
 
-    rows,cols=session["size"]
-    puzzle=Puzzle(rows,cols)
-    puzzle.shapes=session["shapes"]
-    puzzle.solution=session["solution"]
-    puzzle.givens=session["givens"]
-    puzzle.shape_colours=session["colour_allocation"]
-    #saving in session and loading again makes keys a string - so convert keys to integers
-    puzzle.shape_colours = {int(key): int(value) for key, value in puzzle.shape_colours.items()}
+    puzzle = load_from_session()
+
+    rows=puzzle.rows
+    cols=puzzle.cols
 
     print("loaded shape colours",puzzle.shape_colours)
     #shape_colours = get_unique_colours()
@@ -152,8 +164,16 @@ def check_valid():
     return render_template("puzzle_template.html", puzzle=puzzle, message=output, guesses=guesses)
 
 
-
-
+def load_from_session():
+    rows, cols = session["size"]
+    puzzle = Puzzle(rows, cols)
+    puzzle.shapes = session["shapes"]
+    puzzle.solution = session["solution"]
+    puzzle.givens = session["givens"]
+    puzzle.shape_colours = session["colour_allocation"]
+    # saving in session and loading again makes keys a string - so convert keys to integers
+    puzzle.shape_colours = {int(key): int(value) for key, value in puzzle.shape_colours.items()}
+    return puzzle
 
 
 if __name__ == '__main__':

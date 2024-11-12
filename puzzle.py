@@ -710,7 +710,7 @@ class Puzzle:
 
                         all_removed=[]
                         for shape in self.shape_cells.values():
-                                print("UGH shape possibles at 1,5 --",self.cell_possibles[(1,5)])
+
                                 broken_it, removed_list = self.surround_check_one_shape(shape,iterating=True,dumps=True) #need iterating flag
                                 print(f"larger surround solver -- shape {shape} broken? {broken_it} removed {removed_list}")
                                 if removed_list:
@@ -1111,7 +1111,6 @@ if __name__ == '__main__':
 
     puzzle.original_solution=copy.deepcopy(puzzle.solution)
     puzzle.solution=copy.deepcopy(puzzle.givens)
-
     puzzle.logic_only_solver()
 
 
