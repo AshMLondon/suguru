@@ -618,6 +618,13 @@ class Puzzle:
             #recursive function needs to check if there are any empty cells left -- if not, hurray we're done -- return a positive message (this should propogate all the way back)
 
 
+    def quick_original_solution_check(self,cell):
+        if self.solution[cell[0]][cell[1]]!=self.original_solution[cell[0]][cell[1]]:
+            self.dump_both()
+            raise Exception ("New solution and original don't match - cell",cell)
+        else:
+            return True
+
 
     def logic_only_solver(self):
         #try to solve the puzzle using only logic - ie no brute force guessing
@@ -626,10 +633,31 @@ class Puzzle:
         #now see if we can solve, just using possibles removal
 
 
+
+
         self.dump_both()
         keepgoing=True
+        loop=0
         while keepgoing:
+            num=-1  #try to stop removing numbers we shouldn't
+            loop+=1
+            print("loop",loop)
             made_changes = False
+
+            # let's check for a mistake
+            gone_wrong=False
+            for r in range(self.rows):
+                for c in range(self.cols):
+                    if self.solution[r][c]==0 and (self.original_solution[r][c] not in self.cell_possibles[(r,c)]):
+                        print (f"*WENT WRONG AT {r,c} -- {self.original_solution[r][c]} is not in {self.cell_possibles[(r,c)]}" )
+                        gone_wrong=True
+            if gone_wrong:
+                self.dump_both()
+                raise Exception("possibles wrong")
+            else:
+                print(".")
+
+
             #find next cell with only 1 possible
             next_cell = min((cell for cell in self.cell_possibles if self.solution[cell[0]][cell[1]] == 0),
                             key=lambda cell: len(self.cell_possibles[cell]), default=False)
@@ -644,54 +672,60 @@ class Puzzle:
                 #only one option - good - we can update it
                 num=possibles_here.pop()
                 self.set_solution(next_cell,num)
+                self.quick_original_solution_check(next_cell)
                 print(f"filled {next_cell} with {num}")
                 made_changes=True
             else:
                 #run out of ones we can do with basic solver
+                print("still in loop but can't do basic")
 
                 self.dump_both()
 
                 #try lonely solver
                 for shape in self.shape_cells:
+                    print("lonely solver - shape",shape)
                     result=self.lonely_numbers_check_shape(shape)
                     if result: break
 
                 if result:
                     lonely_cell,num=result
-
-                    print(self.cell_possibles)
+                    print("lonely possibles",self.cell_possibles)
                     self.set_solution(lonely_cell, num)
+                    self.quick_original_solution_check(lonely_cell)
                     next_cell=lonely_cell #to do follow_up
                     print(f"filled Lonely Cells {lonely_cell} with {num}")
                     made_changes = True
 
-                else:
+                else:  #lonely solver didn't help
 
 
                     #try surround check
                     removed=self.smaller_surrounded_check_all()
                     if removed:
-                        print("surround smaller check has done something useful")
+                        print("surround smaller check has done something useful",removed)
                         made_changes=True
 
                     else:
                         #NEED LARGER SOLVER NOW
 
-                        removed = 0
+                        all_removed=[]
                         for shape in self.shape_cells.values():
-                                broken_it, removed_list = self.surround_check_one_shape(shape,iterating=True) #need iterating flag
-                                print(broken_it,removed_list)
+                                print("UGH shape possibles at 1,5 --",self.cell_possibles[(1,5)])
+                                broken_it, removed_list = self.surround_check_one_shape(shape,iterating=True,dumps=True) #need iterating flag
+                                print(f"larger surround solver -- shape {shape} broken? {broken_it} removed {removed_list}")
                                 if removed_list:
                                     print("surround LARGER check has done something useful")
+                                    all_removed.append(removed_list)
                                     made_changes = True
                                     self.dump_both()
 
+            if not made_changes:
+                keepgoing=False
 
 
-                        else:
-                            if not made_changes:
-                                keepgoing=False
 
+
+            #TODO - move this or only run when we've actually made changes
             #now update possibles based on the change - just check  'linked_cells'
             for linked in self.linked_cells[next_cell]:
                 if num in self.cell_possibles[linked]:
@@ -848,7 +882,7 @@ class Puzzle:
 
         return removed
 
-    def surround_check_one_shape(self, shape, iterating=False):
+    def surround_check_one_shape(self, shape, iterating=False, dumps=False):
         #TODO *****6/11/24
         #adding this function in has led to some puzzles showing as no solution, when they were being solved before - why?
         #(it does seem to speed things up in some cases though)
@@ -872,7 +906,7 @@ class Puzzle:
                         break  # no need to continue if the union is empty - won't be others that touch  all
         if match_all:
             # we have found one or more cells that is 'surrounded' - now remove possibles
-            print(f"matched - {shape}")
+            if dumps: print(f"matched - {shape}")
             shape_len=len(shape)
             if iterating:
                 # print("!")
@@ -1043,12 +1077,18 @@ if __name__ == '__main__':
     print (sys.version)
 
     puzzle = Puzzle(7, 8)
-    n=101
+    n=100
     keepgoing=True
-    puzzle.iteration_timeout_limit=10 #to allow for debugging
+
 
     while keepgoing:
+
+
+
+
         random.seed(n)
+        puzzle = Puzzle(7, 8)
+        puzzle.iteration_timeout_limit = 10  # to allow for debugging
         puzzle.generate_grid_shapes()
         puzzle.generate_iteration_lookups()
         start_time = time.time()
@@ -1058,14 +1098,18 @@ if __name__ == '__main__':
             keepgoing=False
         else:
             n+=1
+
     puzzle.dump_both()
+
     puzzle.build_up_givens()
     puzzle.dump_both()
+    print("double check", puzzle.is_whole_thing_valid())
     print(puzzle.givens)
 
     #now let's try to see if we can solve this using logic alone
     #first save the actual complete solution, and swap over to just the givens in the solution grid
-    orig_solution=copy.deepcopy(puzzle.solution)
+
+    puzzle.original_solution=copy.deepcopy(puzzle.solution)
     puzzle.solution=copy.deepcopy(puzzle.givens)
 
     puzzle.logic_only_solver()
