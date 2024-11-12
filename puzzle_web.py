@@ -16,7 +16,9 @@ app.jinja_env.lstrip_blocks = True
 @app.route("/")
 def just_a_little_starting_thing():
 
-    random.seed(101)
+    seed=request.args.get("seed")
+    if seed:
+        random.seed(int(seed))
     puzzle=Puzzle(7,8)
     # random.seed(2)
     puzzle.generate_grid_shapes()
@@ -36,14 +38,18 @@ def just_a_little_starting_thing():
 
 
     #save completed puzzle in session that can be reloaded next time we come back for a page
-    session["size"]=(puzzle.rows,puzzle.cols)
-    session["shapes"]=puzzle.shapes
-    session["solution"]=puzzle.solution
-    session["givens"]=puzzle.givens
-    session["colour_allocation"]= puzzle.shape_colours
-
+    save_to_session(puzzle)
 
     return render_template("puzzle_template.html",puzzle=puzzle)
+
+
+def save_to_session(puzzle):
+    session["size"] = (puzzle.rows, puzzle.cols)
+    session["shapes"] = puzzle.shapes
+    session["solution"] = puzzle.solution
+    session["givens"] = puzzle.givens
+    session["colour_allocation"] = puzzle.shape_colours
+
 
 @app.route("/load")
 def run_thru_saved():
@@ -88,8 +94,11 @@ def run_logic_check():
     puzzle.original_solution = copy.deepcopy(puzzle.solution)
     puzzle.solution = copy.deepcopy(puzzle.givens)
     puzzle.logic_only_solver()
+
     puzzle.givens = copy.deepcopy(puzzle.solution)
     puzzle.solution = copy.deepcopy(puzzle.original_solution)
+
+    save_to_session(puzzle)
 
     return render_template("puzzle_template.html", puzzle=puzzle)
 

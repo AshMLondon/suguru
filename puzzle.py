@@ -719,6 +719,22 @@ class Puzzle:
                                     made_changes = True
                                     self.dump_both()
 
+                                else:
+                                    #EVEN WIDER SOLVER
+                                    all_removed = []
+                                    for shape in self.shape_cells.values():
+                                        broken_it, removed_list = self.surround_check_one_shape_extra(shape, iterating=True,
+                                                                                                dumps=True)  # need iterating flag
+                                        print(
+                                            f"EXTRA surround solver -- shape {shape} broken? {broken_it} removed {removed_list}")
+                                        if removed_list:
+                                            print("surround EXTRA check has done something useful")
+                                            all_removed.append(removed_list)
+                                            made_changes = True
+                                            self.dump_both()
+
+
+
             if not made_changes:
                 keepgoing=False
 
@@ -935,6 +951,52 @@ class Puzzle:
                     break
 
         return (False,removed_list)
+
+    def surround_check_one_shape_extra(self, shape, iterating=True, dumps=False):
+        #different version - this one will try to spot if all spaces with a certain possible are touching a particular cell
+
+        # print (shape)
+
+        removed_list=[]
+        broken_it = False  #flag for  if removing possibles leaves to none left
+
+
+        for num in range(1,len(shape)+1):
+            #do each number separately
+            match_all = set()
+            first_cell = True
+
+            for cell in shape:
+                if self.get_solution(cell)==0 and num in self.cell_possibles[cell]:  #need to be blank and have THIS NUM as a possible
+                    linked = set(self.linked_cells[cell])
+                    neighbours_only = linked.difference(shape)
+                    if first_cell:
+                        first_cell = False
+                        match_all = neighbours_only
+                    else:
+                        # keep tabs of cells that are connected to all shapes (so use intersection of sets)
+                        match_all = match_all.intersection(neighbours_only)
+                        if not match_all:
+                            break  # no need to continue if the union is empty - won't be others that touch  all
+            if match_all:
+                # we have found one or more cells that is 'surrounded' - now remove possibles
+                if dumps: print(f"matched - number {num} - shape {shape}")
+
+                for cell in match_all:
+                    if num in self.cell_possibles[cell]:
+                        if self.get_solution(cell)==0:
+                            self.cell_possibles[cell].remove(num)
+                            removed_list.append((cell,num))
+
+                    if not self.cell_possibles[cell]:
+                        broken_it=True
+                        return (broken_it,removed_list)
+                        break
+
+        return (False,removed_list)
+
+
+
 
     def is_whole_thing_valid(self):
         #double check the end solution is valid (Shouldn't really need)
