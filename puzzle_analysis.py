@@ -27,6 +27,7 @@ def generate_results(count=False):
         print()
         print("**PUZZLE SETUP**")
         puzzle = Puzzle(7, 8)
+        puzzle.iteration_timeout_limit=3
         random.seed(100 + n)
         puzzle.generate_grid_shapes()
         puzzle.generate_iteration_lookups()

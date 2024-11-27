@@ -525,7 +525,7 @@ class Puzzle:
                 if self.iteration_solutions_found==1:
                     # print ("First Solution Found")
                     # self.dump_solution()
-                    print("solution VALID?", self.is_whole_thing_valid())
+                    #print("solution VALID?", self.is_whole_thing_valid())
                     self.first_trial_solution=copy.deepcopy(self.solution)
                     #now return False so we keep going with the search
                     return False
@@ -558,6 +558,8 @@ class Puzzle:
             changes_made=[]
             broken_it=False
 
+
+
             for linked in self.linked_cells[live_cell]:
                 #self.lonely_numbers_check_shape(self.get_shape(linked))  #TODO - remove
                 #go through them all - if any are same value, remove that value, but note which cell we're removing from
@@ -577,6 +579,8 @@ class Puzzle:
             if not broken_it:
                 #work out which shape the live cell is in and send
                 broken_it,more_changes=self.surround_check_one_shape(self.shape_cells[self.get_shape(live_cell)], iterating=True)
+                #broken_it,more_changes=self.surround_check_one_shape_extra(self.shape_cells[self.get_shape(live_cell)], iterating=True)
+
                 changes_made.extend(more_changes)
 
 
@@ -632,16 +636,16 @@ class Puzzle:
         self.initialise_cell_possibles(full_check=True)
         #now see if we can solve, just using possibles removal
 
+        logic_verbose=False
+        most_complex_methods={"basic"}
 
-
-
-        self.dump_both()
+        if logic_verbose:self.dump_both()
         keepgoing=True
         loop=0
         while keepgoing:
             num=-1  #try to stop removing numbers we shouldn't
             loop+=1
-            print("loop",loop)
+            if logic_verbose:print("loop",loop)
             made_changes = False
 
             # let's check for a mistake
@@ -649,13 +653,13 @@ class Puzzle:
             for r in range(self.rows):
                 for c in range(self.cols):
                     if self.solution[r][c]==0 and (self.original_solution[r][c] not in self.cell_possibles[(r,c)]):
-                        print (f"*WENT WRONG AT {r,c} -- {self.original_solution[r][c]} is not in {self.cell_possibles[(r,c)]}" )
+                        if logic_verbose:print (f"*WENT WRONG AT {r,c} -- {self.original_solution[r][c]} is not in {self.cell_possibles[(r,c)]}" )
                         gone_wrong=True
             if gone_wrong:
-                self.dump_both()
+                if logic_verbose:self.dump_both()
                 raise Exception("possibles wrong")
             else:
-                print(".")
+                if logic_verbose:print(".")
 
 
             #find next cell with only 1 possible
@@ -663,38 +667,39 @@ class Puzzle:
                             key=lambda cell: len(self.cell_possibles[cell]), default=False)
             if not next_cell:
                 #we've solved it
-                print ("hurray")
-                return True
+                if logic_verbose:print ("hurray")
+                return most_complex_methods
             possibles_here=self.cell_possibles[next_cell]
             if len(possibles_here)==0:
-                print("**PROBLEM**")
+                if logic_verbose:print("**PROBLEM**")
             if len(possibles_here)==1:
                 #only one option - good - we can update it
                 num=possibles_here.pop()
                 self.set_solution(next_cell,num)
                 self.quick_original_solution_check(next_cell)
-                print(f"filled {next_cell} with {num}")
+                if logic_verbose:print(f"filled {next_cell} with {num}")
                 made_changes=True
             else:
                 #run out of ones we can do with basic solver
-                print("still in loop but can't do basic")
+                if logic_verbose:print("still in loop but can't do basic")
 
-                self.dump_both()
+                if logic_verbose:self.dump_both()
 
                 #try lonely solver
                 for shape in self.shape_cells:
-                    print("lonely solver - shape",shape)
+                    if logic_verbose:print("lonely solver - shape",shape)
                     result=self.lonely_numbers_check_shape(shape)
                     if result: break
 
                 if result:
                     lonely_cell,num=result
-                    print("lonely possibles",self.cell_possibles)
+                    if logic_verbose:print("lonely possibles",self.cell_possibles)
                     self.set_solution(lonely_cell, num)
                     self.quick_original_solution_check(lonely_cell)
                     next_cell=lonely_cell #to do follow_up
-                    print(f"filled Lonely Cells {lonely_cell} with {num}")
+                    if logic_verbose:print(f"filled Lonely Cells {lonely_cell} with {num}")
                     made_changes = True
+                    most_complex_methods.add("lonely")
 
                 else:  #lonely solver didn't help
 
@@ -702,8 +707,10 @@ class Puzzle:
                     #try surround check
                     removed=self.smaller_surrounded_check_all()
                     if removed:
-                        print("surround smaller check has done something useful",removed)
+                        if logic_verbose:print("surround smaller check has done something useful",removed)
                         made_changes=True
+                        most_complex_methods.add("surround")
+
 
                     else:
                         #NEED LARGER SOLVER NOW
@@ -712,12 +719,13 @@ class Puzzle:
                         for shape in self.shape_cells.values():
 
                                 broken_it, removed_list = self.surround_check_one_shape(shape,iterating=True,dumps=True) #need iterating flag
-                                print(f"larger surround solver -- shape {shape} broken? {broken_it} removed {removed_list}")
+                                if logic_verbose:print(f"larger surround solver -- shape {shape} broken? {broken_it} removed {removed_list}")
                                 if removed_list:
-                                    print("surround LARGER check has done something useful")
+                                    if logic_verbose:print("surround LARGER check has done something useful")
                                     all_removed.append(removed_list)
                                     made_changes = True
-                                    self.dump_both()
+                                    most_complex_methods.add("wider")
+                                    if logic_verbose:self.dump_both()
 
                                 else:
                                     #EVEN WIDER SOLVER
@@ -731,7 +739,8 @@ class Puzzle:
                                             print("surround EXTRA check has done something useful")
                                             all_removed.append(removed_list)
                                             made_changes = True
-                                            self.dump_both()
+                                            most_complex_methods.add("even_wider")
+                                            if logic_verbose:self.dump_both()
 
 
 
@@ -749,15 +758,15 @@ class Puzzle:
                         self.cell_possibles[linked].remove(num)
 
 
-        print("STEP 1 - REMOVING POSSIBLES - RUN OUT ")
+        if logic_verbose:print("STEP 1 - REMOVING POSSIBLES - RUN OUT ")
 
-        self.dump_both()
-        print("LONELY NUMBERS?",self.lonely_numbers_check_all_linked(next_cell))
-        print("SURROUNDED",self.smaller_surrounded_check_all())
+        if logic_verbose:self.dump_both()
+        if logic_verbose:print("LONELY NUMBERS?",self.lonely_numbers_check_all_linked(next_cell))
+        if logic_verbose:print("SURROUNDED",self.smaller_surrounded_check_all())
 
 
-        self.dump_both()
-        print(self.cell_possibles)
+        if logic_verbose:self.dump_both()
+        if logic_verbose:print(self.cell_possibles)
 
 
 
@@ -1139,41 +1148,43 @@ if __name__ == '__main__':
     print (sys.version)
 
     puzzle = Puzzle(7, 8)
-    n=100
+    start_n=800
     keepgoing=True
 
+    for goes in range(3):
+        print ("GO ",goes)
 
-    while keepgoing:
+        while keepgoing:
 
 
+            n=random.randint(1,100000)
 
+            random.seed(n)
+            puzzle = Puzzle(7, 8)
+            puzzle.iteration_timeout_limit = 10  # to allow for debugging
+            puzzle.generate_grid_shapes()
+            puzzle.generate_iteration_lookups()
+            start_time = time.time()
+            success = puzzle.better_solver(multi=False)
+            print(n,success)
+            if success:
+                keepgoing=False
+            else:
+                n+=1
 
-        random.seed(n)
-        puzzle = Puzzle(7, 8)
-        puzzle.iteration_timeout_limit = 10  # to allow for debugging
-        puzzle.generate_grid_shapes()
-        puzzle.generate_iteration_lookups()
-        start_time = time.time()
-        success = puzzle.better_solver(multi=False)
-        print(n,success)
-        if success:
-            keepgoing=False
-        else:
-            n+=1
+        #puzzle.dump_both()
+        puzzle.build_up_givens()
+        #puzzle.dump_both()
+        print("double check", puzzle.is_whole_thing_valid())
+        #print(puzzle.givens)
 
-    puzzle.dump_both()
+        #now let's try to see if we can solve this using logic alone
+        #first save the actual complete solution, and swap over to just the givens in the solution grid
 
-    puzzle.build_up_givens()
-    puzzle.dump_both()
-    print("double check", puzzle.is_whole_thing_valid())
-    print(puzzle.givens)
-
-    #now let's try to see if we can solve this using logic alone
-    #first save the actual complete solution, and swap over to just the givens in the solution grid
-
-    puzzle.original_solution=copy.deepcopy(puzzle.solution)
-    puzzle.solution=copy.deepcopy(puzzle.givens)
-    puzzle.logic_only_solver()
+        puzzle.original_solution=copy.deepcopy(puzzle.solution)
+        puzzle.solution=copy.deepcopy(puzzle.givens)
+        result=puzzle.logic_only_solver()
+        print("Logic solver - most complex used",result)
 
 
     quit()
